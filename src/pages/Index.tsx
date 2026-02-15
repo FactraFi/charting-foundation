@@ -4,6 +4,8 @@ import DashboardView from "@/components/DashboardView";
 import StockDetailView from "@/components/StockDetailView";
 import AuthScreen from "@/components/AuthScreen";
 import TradeModal from "@/components/TradeModal";
+import ScreenerView from "@/components/ScreenerView";
+import AIView from "@/components/AIView";
 import type { MockStock } from "@/data/mock-data";
 
 const Index = () => {
@@ -34,6 +36,10 @@ const Index = () => {
     switch (activeTab) {
       case 'dashboard':
         return <DashboardView setActiveTab={setActiveTab} onSelectStock={setSelectedStock} onTrade={openTrade} />;
+      case 'screener':
+        return <ScreenerView onSelectStock={setSelectedStock} onTrade={openTrade} />;
+      case 'ai':
+        return <AIView />;
       default:
         return (
           <div className="flex items-center justify-center h-[60vh]">
