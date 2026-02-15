@@ -14,9 +14,10 @@ import type { MockStock } from "@/data/mock-data";
 
 interface DashboardViewProps {
   setActiveTab: (tab: string) => void;
+  onSelectStock?: (stock: MockStock) => void;
 }
 
-const DashboardView = ({ setActiveTab }: DashboardViewProps) => {
+const DashboardView = ({ setActiveTab, onSelectStock }: DashboardViewProps) => {
   const [timeRange, setTimeRange] = useState('1D');
   const [markerType, setMarkerType] = useState('technical');
   const [isMarkersDropdownOpen, setIsMarkersDropdownOpen] = useState(false);
@@ -159,7 +160,10 @@ const DashboardView = ({ setActiveTab }: DashboardViewProps) => {
                   <div className="w-16 h-16 rounded-full bg-primary flex items-center justify-center text-primary-foreground font-bold text-xl shadow-[0_0_20px_hsl(var(--primary)/0.4)]">
                     {activeStock.symbol[0]}
                   </div>
-                  <h1 className="text-6xl md:text-7xl font-bold text-foreground tracking-tighter leading-none">
+                  <h1
+                    className="text-6xl md:text-7xl font-bold text-foreground tracking-tighter leading-none cursor-pointer hover:text-primary transition-colors"
+                    onClick={() => onSelectStock?.(activeStock)}
+                  >
                     {activeStock.symbol}
                   </h1>
                 </div>

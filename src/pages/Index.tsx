@@ -1,14 +1,21 @@
 import { useState } from "react";
 import ModernNavbar from "@/components/ModernNavbar";
 import DashboardView from "@/components/DashboardView";
+import StockDetailView from "@/components/StockDetailView";
+import type { MockStock } from "@/data/mock-data";
 
 const Index = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
+  const [selectedStock, setSelectedStock] = useState<MockStock | null>(null);
 
   const renderView = () => {
+    if (selectedStock) {
+      return <StockDetailView stock={selectedStock} onBack={() => setSelectedStock(null)} />;
+    }
+
     switch (activeTab) {
       case 'dashboard':
-        return <DashboardView setActiveTab={setActiveTab} />;
+        return <DashboardView setActiveTab={setActiveTab} onSelectStock={setSelectedStock} />;
       default:
         return (
           <div className="flex items-center justify-center h-[60vh]">
