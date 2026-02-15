@@ -2,11 +2,17 @@ import { useState } from "react";
 import ModernNavbar from "@/components/ModernNavbar";
 import DashboardView from "@/components/DashboardView";
 import StockDetailView from "@/components/StockDetailView";
+import AuthScreen from "@/components/AuthScreen";
 import type { MockStock } from "@/data/mock-data";
 
 const Index = () => {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [activeTab, setActiveTab] = useState('dashboard');
   const [selectedStock, setSelectedStock] = useState<MockStock | null>(null);
+
+  if (!isAuthenticated) {
+    return <AuthScreen onLogin={() => setIsAuthenticated(true)} />;
+  }
 
   const renderView = () => {
     if (selectedStock) {
