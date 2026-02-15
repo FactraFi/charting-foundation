@@ -8,6 +8,7 @@ import { MOCK_STOCKS, MOCK_NOTIFICATIONS } from "@/data/mock-data";
 interface NavbarProps {
   activeTab: string;
   setActiveTab: (tab: string) => void;
+  onLogout?: () => void;
 }
 
 const menuItems = [
@@ -18,7 +19,7 @@ const menuItems = [
   { id: 'portfolio', label: 'Portfolio', icon: Briefcase },
 ];
 
-const ModernNavbar = ({ activeTab, setActiveTab }: NavbarProps) => {
+const ModernNavbar = ({ activeTab, setActiveTab, onLogout }: NavbarProps) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearchFocused, setIsSearchFocused] = useState(false);
@@ -192,7 +193,7 @@ const ModernNavbar = ({ activeTab, setActiveTab }: NavbarProps) => {
                     </button>
                   </div>
                   <div className="border-t border-border py-2">
-                    <button className="w-full text-left px-4 py-2 text-sm text-destructive hover:text-destructive hover:bg-destructive/10 flex items-center gap-2">
+                    <button onClick={onLogout} className="w-full text-left px-4 py-2 text-sm text-destructive hover:text-destructive hover:bg-destructive/10 flex items-center gap-2">
                       <LogOut size={16} /> Sign Out
                     </button>
                   </div>
@@ -222,6 +223,11 @@ const ModernNavbar = ({ activeTab, setActiveTab }: NavbarProps) => {
               {item.label}
             </button>
           ))}
+          <div className="pt-4 border-t border-border mt-2">
+            <button onClick={onLogout} className="flex items-center gap-3 text-destructive px-3 py-2 text-sm font-medium w-full">
+              <LogOut size={18} /> Sign Out
+            </button>
+          </div>
         </div>
       )}
     </nav>
