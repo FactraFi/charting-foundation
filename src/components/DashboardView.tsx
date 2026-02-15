@@ -15,9 +15,10 @@ import type { MockStock } from "@/data/mock-data";
 interface DashboardViewProps {
   setActiveTab: (tab: string) => void;
   onSelectStock?: (stock: MockStock) => void;
+  onTrade?: (stock: MockStock, type: 'buy' | 'sell') => void;
 }
 
-const DashboardView = ({ setActiveTab, onSelectStock }: DashboardViewProps) => {
+const DashboardView = ({ setActiveTab, onSelectStock, onTrade }: DashboardViewProps) => {
   const [timeRange, setTimeRange] = useState('1D');
   const [markerType, setMarkerType] = useState('technical');
   const [isMarkersDropdownOpen, setIsMarkersDropdownOpen] = useState(false);
@@ -174,6 +175,18 @@ const DashboardView = ({ setActiveTab, onSelectStock }: DashboardViewProps) => {
                       {activeStock.change > 0 ? '+' : ''}{activeStock.change}%
                     </span>
                   </div>
+                  <button
+                    onClick={() => onSelectStock?.(activeStock)}
+                    className="bg-primary text-primary-foreground px-4 py-1.5 rounded-full text-sm font-bold hover:bg-primary/90 transition-all hover:scale-105 shadow-[0_0_15px_hsl(var(--primary)/0.3)] ml-2 flex items-center gap-1"
+                  >
+                    Details
+                  </button>
+                  <button
+                    onClick={() => onTrade?.(activeStock, 'buy')}
+                    className="bg-primary text-primary-foreground px-4 py-1.5 rounded-full text-sm font-bold hover:bg-primary/90 transition-all hover:scale-105 shadow-[0_0_15px_hsl(var(--primary)/0.3)] flex items-center gap-1"
+                  >
+                    Place Order
+                  </button>
                 </div>
               </div>
 
