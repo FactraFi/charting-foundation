@@ -4,12 +4,8 @@ import {
   ChevronRight, Search, BarChart2, AlertCircle, Sparkles,
   ChevronDown
 } from "lucide-react";
-import {
-  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip,
-  ResponsiveContainer
-} from "recharts";
 import FactraScoreGauge from "@/components/FactraScoreGauge";
-import { MOCK_STOCKS, CHART_DATA_VARIANTS, MARKER_DATA } from "@/data/mock-data";
+import { MOCK_STOCKS, MARKER_DATA } from "@/data/mock-data";
 import type { MockStock } from "@/data/mock-data";
 
 interface DashboardViewProps {
@@ -18,8 +14,49 @@ interface DashboardViewProps {
   onTrade?: (stock: MockStock, type: 'buy' | 'sell') => void;
 }
 
+/* ── TradingView Chart Widget ────────────────────────── */
+const TradingViewChart = ({ symbol }: { symbol: string }) => {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const chartId = `tv_dashboard_${symbol}`;
+
+  useEffect(() => {
+    if (!containerRef.current) return;
+    containerRef.current.innerHTML = "";
+
+    const tv = (window as any).TradingView;
+    if (!tv) {
+      containerRef.current.innerHTML =
+        '<p class="text-muted-foreground text-xs text-center py-20">TradingView library not loaded.</p>';
+      return;
+    }
+
+    new tv.widget({
+      autosize: true,
+      symbol: symbol,
+      interval: "D",
+      timezone: "Etc/UTC",
+      theme: "dark",
+      style: "1",
+      locale: "en",
+      toolbar_bg: "#050505",
+      enable_publishing: false,
+      allow_symbol_change: true,
+      hide_side_toolbar: false,
+      hide_top_toolbar: false,
+      hide_legend: false,
+      save_image: false,
+      container_id: chartId,
+      backgroundColor: "#050505",
+      gridColor: "rgba(30,33,40,0.6)",
+    });
+  }, [symbol, chartId]);
+
+  return (
+    <div id={chartId} ref={containerRef} className="w-full h-full" />
+  );
+};
+
 const DashboardView = ({ setActiveTab, onSelectStock, onTrade }: DashboardViewProps) => {
-  const [timeRange, setTimeRange] = useState('1D');
   const [markerType, setMarkerType] = useState('technical');
   const [isMarkersDropdownOpen, setIsMarkersDropdownOpen] = useState(false);
   const markersDropdownRef = useRef<HTMLDivElement>(null);
@@ -48,8 +85,6 @@ const DashboardView = ({ setActiveTab, onSelectStock, onTrade }: DashboardViewPr
   const filteredHeroStocks = heroSearchQuery
     ? MOCK_STOCKS.filter(s => s.symbol.toLowerCase().includes(heroSearchQuery.toLowerCase()) || s.name.toLowerCase().includes(heroSearchQuery.toLowerCase()))
     : MOCK_STOCKS;
-
-  const currentChartData = CHART_DATA_VARIANTS[timeRange] || CHART_DATA_VARIANTS['1D'];
 
   const getPillarColor = (score: number, isRisk = false) => {
     if (isRisk) return score <= 40 ? 'text-primary' : score <= 70 ? 'text-yellow-500' : 'text-destructive';
@@ -239,7 +274,7 @@ const DashboardView = ({ setActiveTab, onSelectStock, onTrade }: DashboardViewPr
         <div className="absolute bottom-0 left-0 w-[300px] h-[300px] bg-info/5 blur-[100px] -z-10 group-hover:bg-info/10 transition-colors duration-1000" />
 
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-10 items-stretch">
-          {/* Chart */}
+          {/* Chart — TradingView Widget */}
           <div className="flex flex-col justify-center space-y-8 min-h-full">
             <div className="flex items-center justify-between">
               <div className="space-y-1">
@@ -248,40 +283,10 @@ const DashboardView = ({ setActiveTab, onSelectStock, onTrade }: DashboardViewPr
                 </h3>
                 <p className="text-sm text-muted-foreground font-medium uppercase tracking-widest">Real-time price trajectory & volume analysis</p>
               </div>
-              <div className="flex bg-background p-1 rounded-xl border border-foreground/5">
-                {Object.keys(CHART_DATA_VARIANTS).map(t => (
-                  <button
-                    key={t}
-                    onClick={() => setTimeRange(t)}
-                    className={`text-[10px] font-black px-4 py-2 rounded-lg transition-all duration-500 uppercase tracking-tighter ${timeRange === t ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/20' : 'text-muted-foreground hover:text-foreground hover:bg-foreground/5'}`}
-                  >
-                    {t}
-                  </button>
-                ))}
-              </div>
             </div>
 
-            <div className="h-[600px] w-full relative group">
-              <div className="absolute -inset-4 bg-primary/5 blur-3xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-1000" />
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={currentChartData}>
-                  <defs>
-                    <linearGradient id="mainChartGradient" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#00FF94" stopOpacity={0.2} />
-                      <stop offset="100%" stopColor="#00FF94" stopOpacity={0} />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(220 12% 14%)" vertical={false} strokeOpacity={0.5} />
-                  <XAxis dataKey="time" stroke="#4B5563" tick={{ fill: '#6B7280', fontSize: 10, fontWeight: 700 }} axisLine={false} tickLine={false} dy={10} />
-                  <YAxis stroke="#4B5563" tick={{ fill: '#6B7280', fontSize: 10, fontWeight: 700 }} axisLine={false} tickLine={false} domain={['dataMin - 5', 'dataMax + 5']} />
-                  <Tooltip
-                    contentStyle={{ backgroundColor: 'rgba(5, 5, 5, 0.95)', backdropFilter: 'blur(20px)', borderColor: 'rgba(0,255,148,0.13)', color: '#fff', borderRadius: '12px', padding: '16px', boxShadow: '0 20px 50px rgba(0,0,0,0.8)', border: '1px solid rgba(255,255,255,0.05)' }}
-                    itemStyle={{ color: '#00FF94', fontWeight: 900, fontSize: '14px' }}
-                    cursor={{ stroke: '#00FF94', strokeWidth: 1.5, strokeDasharray: '4 4' }}
-                  />
-                  <Area type="monotone" dataKey="value" stroke="#00FF94" strokeWidth={4} fill="url(#mainChartGradient)" animationDuration={1500} animationEasing="ease-in-out" />
-                </AreaChart>
-              </ResponsiveContainer>
+            <div className="h-[600px] w-full relative">
+              <TradingViewChart symbol={activeStock.symbol} />
             </div>
           </div>
 
