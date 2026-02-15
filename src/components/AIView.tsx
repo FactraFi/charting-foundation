@@ -1,17 +1,95 @@
 import { useState, useEffect, useRef } from "react";
 import { MessageSquare, Plus, Bot, Send, Loader2 } from "lucide-react";
+import ReactMarkdown from "react-markdown";
+import { toast } from "sonner";
 
 interface ChatMessage {
   role: 'user' | 'assistant';
-  text: string;
+  content: string;
+}
+
+const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat`;
+
+async function streamChat({
+  messages,
+  onDelta,
+  onDone,
+}: {
+  messages: { role: string; content: string }[];
+  onDelta: (text: string) => void;
+  onDone: () => void;
+}) {
+  const resp = await fetch(CHAT_URL, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+    },
+    body: JSON.stringify({ messages }),
+  });
+
+  if (!resp.ok) {
+    const err = await resp.json().catch(() => ({ error: "Request failed" }));
+    throw new Error(err.error || `Error ${resp.status}`);
+  }
+
+  if (!resp.body) throw new Error("No response body");
+
+  const reader = resp.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+  let done = false;
+
+  while (!done) {
+    const { done: readerDone, value } = await reader.read();
+    if (readerDone) break;
+    buffer += decoder.decode(value, { stream: true });
+
+    let idx: number;
+    while ((idx = buffer.indexOf("\n")) !== -1) {
+      let line = buffer.slice(0, idx);
+      buffer = buffer.slice(idx + 1);
+      if (line.endsWith("\r")) line = line.slice(0, -1);
+      if (line.startsWith(":") || line.trim() === "") continue;
+      if (!line.startsWith("data: ")) continue;
+      const jsonStr = line.slice(6).trim();
+      if (jsonStr === "[DONE]") { done = true; break; }
+      try {
+        const parsed = JSON.parse(jsonStr);
+        const content = parsed.choices?.[0]?.delta?.content;
+        if (content) onDelta(content);
+      } catch {
+        buffer = line + "\n" + buffer;
+        break;
+      }
+    }
+  }
+
+  // flush remaining
+  if (buffer.trim()) {
+    for (let raw of buffer.split("\n")) {
+      if (!raw) continue;
+      if (raw.endsWith("\r")) raw = raw.slice(0, -1);
+      if (!raw.startsWith("data: ")) continue;
+      const jsonStr = raw.slice(6).trim();
+      if (jsonStr === "[DONE]") continue;
+      try {
+        const parsed = JSON.parse(jsonStr);
+        const content = parsed.choices?.[0]?.delta?.content;
+        if (content) onDelta(content);
+      } catch { /* ignore */ }
+    }
+  }
+
+  onDone();
 }
 
 const AIView = () => {
   const [input, setInput] = useState('');
   const [messages, setMessages] = useState<ChatMessage[]>([
-    { role: 'assistant', text: "Hello. I am FactraAI. I can analyze market sentiment, explain quantitative strategies, or summarize news. How can I assist you today?" }
+    { role: 'assistant', content: "Hello. I am FactraAI. I can analyze market sentiment, explain quantitative strategies, or summarize news. How can I assist you today?" }
   ]);
-  const [loading, setLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [activeChat, setActiveChat] = useState(1);
 
@@ -23,34 +101,44 @@ const AIView = () => {
     { id: 5, title: 'Tech Sector Rotation', preview: 'Is money flowing out of mega-caps?', time: '1w ago' },
   ];
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  };
-
   useEffect(() => {
-    scrollToBottom();
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!input.trim()) return;
+    if (!input.trim() || isLoading) return;
 
     const userMsg = input;
     setInput('');
-    setMessages(prev => [...prev, { role: 'user', text: userMsg }]);
-    setLoading(true);
+    const userMessage: ChatMessage = { role: 'user', content: userMsg };
+    setMessages(prev => [...prev, userMessage]);
+    setIsLoading(true);
 
-    // Mock AI response (will be replaced with real Lovable AI integration)
-    setTimeout(() => {
-      const responses = [
-        `Based on current market data, here's my analysis of "${userMsg}":\n\n**Key Points:**\n- Market sentiment is currently leaning bullish with VIX at historic lows\n- Institutional flows show accumulation in tech and AI sectors\n- RSI indicators suggest some overbought conditions in mega-caps\n\nWould you like me to dive deeper into any specific aspect?`,
-        `Great question about "${userMsg}". Let me break this down:\n\n1. **Fundamental Analysis**: The underlying financials remain strong with improving margins\n2. **Technical Outlook**: Price action is constructive above key moving averages\n3. **Risk Assessment**: Moderate risk with defined support levels\n\nI'd recommend monitoring the 50-day MA for potential entry signals.`,
-        `Analyzing "${userMsg}" through FactraFi's multi-factor lens:\n\n📊 **Momentum**: Positive trend with accelerating volume\n💰 **Valuation**: Trading at a slight premium to sector peers\n⚡ **Sentiment**: Analyst consensus is bullish (4.2/5 average rating)\n🛡️ **Risk**: Beta of 1.15 suggests slightly above-market volatility\n\nOverall FactraScore: **78/100** - Signal: BUY`,
-      ];
-      const response = responses[Math.floor(Math.random() * responses.length)];
-      setMessages(prev => [...prev, { role: 'assistant', text: response }]);
-      setLoading(false);
-    }, 1500);
+    let assistantSoFar = "";
+    const upsertAssistant = (chunk: string) => {
+      assistantSoFar += chunk;
+      setMessages(prev => {
+        const last = prev[prev.length - 1];
+        if (last?.role === "assistant" && prev.length > 1 && prev[prev.length - 2]?.role === "user" && prev[prev.length - 2]?.content === userMsg) {
+          return prev.map((m, i) => (i === prev.length - 1 ? { ...m, content: assistantSoFar } : m));
+        }
+        return [...prev, { role: "assistant", content: assistantSoFar }];
+      });
+    };
+
+    try {
+      const apiMessages = [...messages, userMessage].map(m => ({ role: m.role, content: m.content }));
+      await streamChat({
+        messages: apiMessages,
+        onDelta: upsertAssistant,
+        onDone: () => setIsLoading(false),
+      });
+    } catch (err: any) {
+      console.error("Chat error:", err);
+      setIsLoading(false);
+      toast.error(err.message || "Failed to get response");
+    }
   };
 
   return (
@@ -64,7 +152,7 @@ const AIView = () => {
           <button
             className="p-2 rounded-lg bg-secondary text-muted-foreground hover:text-foreground hover:bg-primary/20 transition-all border border-border hover:border-primary/50"
             onClick={() => {
-              setMessages([{ role: 'assistant', text: "Hello. I am FactraAI. How can I assist you today?" }]);
+              setMessages([{ role: 'assistant', content: "Hello. I am FactraAI. How can I assist you today?" }]);
               setActiveChat(1);
             }}
           >
@@ -102,7 +190,7 @@ const AIView = () => {
           </div>
           <div>
             <h3 className="font-bold text-foreground">FactraAI Assistant</h3>
-            <p className="text-xs text-muted-foreground">Powered by Gemini 2.5</p>
+            <p className="text-xs text-muted-foreground">Powered by Gemini</p>
           </div>
         </div>
 
@@ -114,11 +202,17 @@ const AIView = () => {
                   ? 'bg-primary text-primary-foreground rounded-tr-none shadow-[0_0_15px_hsl(var(--primary)/0.1)]'
                   : 'bg-secondary text-foreground/90 rounded-tl-none border border-border'
               }`}>
-                <p className="text-sm whitespace-pre-wrap leading-relaxed">{msg.text}</p>
+                {msg.role === 'assistant' ? (
+                  <div className="text-sm prose prose-sm prose-invert max-w-none leading-relaxed">
+                    <ReactMarkdown>{msg.content}</ReactMarkdown>
+                  </div>
+                ) : (
+                  <p className="text-sm whitespace-pre-wrap leading-relaxed">{msg.content}</p>
+                )}
               </div>
             </div>
           ))}
-          {loading && (
+          {isLoading && messages[messages.length - 1]?.role !== 'assistant' && (
             <div className="flex justify-start">
               <div className="bg-secondary p-4 rounded-2xl rounded-tl-none flex gap-2 items-center border border-border">
                 <Loader2 size={16} className="animate-spin text-primary" />
@@ -139,7 +233,7 @@ const AIView = () => {
           />
           <button
             type="submit"
-            disabled={loading || !input.trim()}
+            disabled={isLoading || !input.trim()}
             className="bg-primary text-primary-foreground p-3 rounded-xl hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-[0_0_10px_hsl(var(--primary)/0.2)]"
           >
             <Send size={20} />
