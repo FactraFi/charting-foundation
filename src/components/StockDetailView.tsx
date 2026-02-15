@@ -13,6 +13,7 @@ import type { MockStock } from "@/data/mock-data";
 interface StockDetailViewProps {
   stock: MockStock;
   onBack: () => void;
+  onTrade?: (stock: MockStock, type: 'buy' | 'sell') => void;
 }
 
 /* ── TradingView Chart Widget ────────────────────────── */
