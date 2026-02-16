@@ -123,7 +123,7 @@ const FactraScoreGauge = ({ score, size = "normal", minimal = false }: FactraSco
           className="text-[10px] uppercase tracking-[0.2em] font-sans font-bold mb-2 transition-colors duration-300"
           style={{ color: isStable ? 'rgba(0, 255, 148, 0.7)' : 'rgba(239, 68, 68, 0.7)' }}
         >
-          {isMedium ? "FactraFi Score" : "Confidence Score"}
+          FactraFi Score
         </div>
         <div className={`${fontSize} font-bold text-foreground tracking-tighter tabular-nums leading-none mb-3 font-sans`}>
           {displayScore}

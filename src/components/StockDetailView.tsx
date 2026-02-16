@@ -205,7 +205,7 @@ const StockDetailView = ({ stock, onBack }: StockDetailViewProps) => {
       {/* ── Charts Section ────────────────────────────── */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* TradingView Price Chart */}
-        <div className="bg-background border border-border rounded-xl p-6 h-[400px] relative overflow-hidden flex flex-col group">
+        <div className="bg-background border border-border rounded-xl p-6 min-h-[400px] h-full relative overflow-hidden flex flex-col group">
           <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
           <div className="text-sm font-bold text-foreground mb-4 relative z-10">Price</div>
           <div className="flex-1 relative z-10 min-h-0">
