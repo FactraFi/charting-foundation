@@ -6,6 +6,7 @@ import {
 } from "lucide-react";
 import FactraScoreGauge from "@/components/FactraScoreGauge";
 import { useStockData, useStockSearch } from "@/hooks/use-stock-data";
+import { useStockSummary } from "@/hooks/use-stock-summary";
 import type { StockData } from "@/lib/api";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -115,6 +116,7 @@ const DashboardView = ({ setActiveTab, onSelectStock, onTrade }: DashboardViewPr
   // Live data
   const { data: activeStock, isLoading } = useStockData(activeTicker);
   const { data: searchResults } = useStockSearch(heroSearchQuery, isSearchOpen && heroSearchQuery.length >= 1);
+  const { data: summary, isLoading: summaryLoading } = useStockSummary(activeStock ?? null);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -306,10 +308,15 @@ const DashboardView = ({ setActiveTab, onSelectStock, onTrade }: DashboardViewPr
                 </div>
               </div>
 
-              <p className="text-sm text-muted-foreground max-w-2xl leading-relaxed">
-                <span className="text-foreground border-b border-primary">{activeStock.name}</span> — {activeStock.sector} / {activeStock.industry}. Signal: <span className="text-primary font-bold">{activeStock.signal}</span>
+              <div className="text-sm text-muted-foreground max-w-2xl leading-relaxed">
+                <span className="font-bold text-foreground underline underline-offset-2">Summary:</span>{' '}
+                {summaryLoading ? (
+                  <span className="italic text-muted-foreground">Generating summary...</span>
+                ) : (
+                  <span>{summary ?? `${activeStock.name} — ${activeStock.sector} / ${activeStock.industry}. Signal: ${activeStock.signal}`}</span>
+                )}
                 {!activeStock.has_scores && <span className="ml-2 text-yellow-500 text-xs">(V-Score pending)</span>}
-              </p>
+              </div>
             </div>
 
             {/* 4 Pillars */}
