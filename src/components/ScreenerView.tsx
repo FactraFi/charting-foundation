@@ -4,6 +4,7 @@ import FactraScoreGauge from "@/components/FactraScoreGauge";
 import { useStockUniverse, useStockSearch, useStockData } from "@/hooks/use-stock-data";
 import type { StockData, StockScoreRow } from "@/lib/api";
 import { Skeleton } from "@/components/ui/skeleton";
+import CompanyLogo from "@/components/CompanyLogo";
 
 interface ScreenerViewProps {
   onSelectStock: (stock: StockData) => void;
@@ -39,8 +40,8 @@ const ScreenerCard = ({
       {/* Header */}
       <div className="flex justify-between items-start mb-6 relative z-10">
         <div className="flex items-center gap-4">
-          <div className="w-12 h-12 rounded-full bg-secondary flex items-center justify-center text-sm font-bold text-foreground border border-border shadow-md group-hover:border-primary/50 transition-colors">
-            {stock.ticker[0]}
+          <div className="w-12 h-12 rounded-full bg-secondary flex items-center justify-center text-sm font-bold text-foreground border border-border shadow-md group-hover:border-primary/50 transition-colors overflow-hidden">
+            <CompanyLogo ticker={stock.ticker} size={48} className="rounded-full object-cover" />
           </div>
           <div>
             <div className="text-xl font-bold text-foreground tracking-tight">{stock.ticker}</div>
@@ -146,8 +147,8 @@ const IndustryCard = ({ industry, data }: { industry: string; data: ScreenerStoc
         <div className="flex justify-between items-center border-t border-border pt-4">
           <div className="flex -space-x-2">
             {data.slice(0, 4).map((stock, i) => (
-              <div key={i} className="w-8 h-8 rounded-full bg-secondary border-2 border-background flex items-center justify-center text-[10px] font-bold text-foreground" style={{ zIndex: 10 - i }}>
-                {stock.ticker[0]}
+              <div key={i} className="w-8 h-8 rounded-full bg-secondary border-2 border-background flex items-center justify-center text-[10px] font-bold text-foreground overflow-hidden" style={{ zIndex: 10 - i }}>
+                <CompanyLogo ticker={stock.ticker} size={32} className="rounded-full object-cover" />
               </div>
             ))}
           </div>
