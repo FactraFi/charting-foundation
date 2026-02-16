@@ -12,7 +12,7 @@ import {
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, BarChart, Bar
-} from "@/recharts-adapter";
+} from "recharts";
 
 // ---------- Strategy defaults ----------
 
