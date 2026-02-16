@@ -68,7 +68,7 @@ const Index = () => {
       <div className="fixed inset-0 tech-grid-bg pointer-events-none opacity-20 z-0" />
 
       <div className="relative z-50">
-        <ModernNavbar activeTab={activeTab} setActiveTab={setActiveTab} onLogout={handleLogout} />
+        <ModernNavbar onLogout={handleLogout} />
       </div>
 
       <main className="flex-1 w-full max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-8 relative z-10 overflow-y-auto">
