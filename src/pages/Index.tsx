@@ -6,6 +6,8 @@ import AuthScreen from "@/components/AuthScreen";
 import TradeModal from "@/components/TradeModal";
 import ScreenerView from "@/components/ScreenerView";
 import AIView from "@/components/AIView";
+import PortfolioView from "@/components/PortfolioView";
+import StrategyBuilderView from "@/components/StrategyBuilderView";
 import type { MockStock } from "@/data/mock-data";
 
 const Index = () => {
@@ -40,6 +42,10 @@ const Index = () => {
         return <ScreenerView onSelectStock={setSelectedStock} onTrade={openTrade} />;
       case 'ai':
         return <AIView />;
+      case 'strategy':
+        return <StrategyBuilderView />;
+      case 'portfolio':
+        return <PortfolioView onSelectStock={setSelectedStock} onTrade={openTrade} />;
       default:
         return (
           <div className="flex items-center justify-center h-[60vh]">
