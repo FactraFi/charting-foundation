@@ -101,7 +101,13 @@ const AIView = () => {
     { id: 5, title: 'Tech Sector Rotation', preview: 'Is money flowing out of mega-caps?', time: '1w ago' },
   ];
 
+  const isFirstRender = useRef(true);
+
   useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
+    }
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
