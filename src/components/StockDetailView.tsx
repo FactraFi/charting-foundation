@@ -116,7 +116,7 @@ const StockDetailView = ({ stock, onBack }: StockDetailViewProps) => {
                 <span className="text-lg text-muted-foreground">/100</span>
               </div>
               {!stock.has_scores && (
-                <div className="text-xs text-yellow-500 mt-1">Score pending — not yet in scored universe</div>
+                <div className="text-xs text-muted-foreground mt-1 animate-pulse">Calculating score...</div>
               )}
               <div className="text-xs text-muted-foreground mt-3 leading-relaxed max-w-xs mx-auto">Normalized composite score across all pillars.</div>
             </div>
@@ -248,7 +248,7 @@ const StockDetailView = ({ stock, onBack }: StockDetailViewProps) => {
               {stock.has_scores ? (
                 <>This V-Score of <strong className="text-foreground">{stock.v_score}/100</strong> for {stock.name} ({stock.ticker}) reflects a composite analysis across Fundamentals ({stock.fundamentals ?? '—'}), Momentum ({stock.momentum ?? '—'}), Risk ({stock.risk ?? '—'}), and Sentiment ({stock.sentiment ?? '—'}).</>
               ) : (
-                <>V-Score has not been calculated for {stock.name} ({stock.ticker}) yet. This stock is not in the current scored universe. Fundamental data from Alpha Vantage is shown where available.</>
+              <>Score is being calculated for {stock.name} ({stock.ticker}). Refresh in a moment to see the full V-Score breakdown.</>
               )}
             </p>
           )}

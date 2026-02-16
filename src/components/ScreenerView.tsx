@@ -90,7 +90,7 @@ const ScreenerCard = ({
         </div>
         <div className="flex flex-col">
           <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider mb-1">V-Score</span>
-          <span className="text-primary font-bold">{stock.v_score ?? 'Pending'}</span>
+          <span className="text-primary font-bold">{stock.v_score ?? (liveData?.v_score ?? '—')}</span>
         </div>
       </div>
 
@@ -173,7 +173,7 @@ const ScreenerView = ({ onSelectStock, onTrade }: ScreenerViewProps) => {
     sector: s.sector || '',
     industry: s.industry || '',
     v_score: s.v_score,
-    signal: s.v_score ? (s.v_score >= 85 ? 'Strong Buy' : s.v_score >= 70 ? 'Buy' : s.v_score >= 50 ? 'Hold' : 'Sell') : 'Pending',
+    signal: s.v_score ? (s.v_score >= 85 ? 'Strong Buy' : s.v_score >= 70 ? 'Buy' : s.v_score >= 50 ? 'Hold' : 'Sell') : '—',
   }));
 
   // If searching, show search results
@@ -229,7 +229,7 @@ const ScreenerView = ({ onSelectStock, onTrade }: ScreenerViewProps) => {
           ))}
           {displayStocks.length === 0 && (
             <div className="col-span-full text-center py-20 text-muted-foreground">
-              {searchQuery ? `No stocks found matching "${searchQuery}"` : 'No scored stocks yet. Your Railway engine needs to calculate scores first.'}
+              {searchQuery ? `No stocks found matching "${searchQuery}"` : 'No scored stocks yet. Scores are being calculated — try searching for any ticker above.'}
             </div>
           )}
         </div>

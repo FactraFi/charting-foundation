@@ -46,7 +46,6 @@ async function fetchAlphaOverview(ticker: string, apiKey: string) {
     roe: d.ReturnOnEquityTTM ? `${(parseFloat(d.ReturnOnEquityTTM) * 100).toFixed(1)}%` : null,
     roce: d.ReturnOnAssetsTTM ? `${(parseFloat(d.ReturnOnAssetsTTM) * 100).toFixed(1)}%` : null,
     dividend_yield: parseFloat(d.DividendYield) ? parseFloat(d.DividendYield) * 100 : null,
-    year_change: d["52WeekHigh"] && d["52WeekLow"] ? null : null,
     profit_margin: d.ProfitMargin ? `${(parseFloat(d.ProfitMargin) * 100).toFixed(1)}%` : null,
     operating_margin: d.OperatingMarginTTM ? `${(parseFloat(d.OperatingMarginTTM) * 100).toFixed(1)}%` : null,
     revenue_growth: d.QuarterlyRevenueGrowthYOY ? `${(parseFloat(d.QuarterlyRevenueGrowthYOY) * 100).toFixed(1)}%` : null,
@@ -54,6 +53,13 @@ async function fetchAlphaOverview(ticker: string, apiKey: string) {
     beta: parseFloat(d.Beta) || null,
     analyst_target: parseFloat(d.AnalystTargetPrice) || null,
     analyst_rating: d.AnalystRatingStrongBuy ? calculateAnalystScore(d) : null,
+    // Raw values for scoring
+    _raw_roe: parseFloat(d.ReturnOnEquityTTM) || null,
+    _raw_profit_margin: parseFloat(d.ProfitMargin) || null,
+    _raw_revenue_growth: parseFloat(d.QuarterlyRevenueGrowthYOY) || null,
+    _raw_52wk_high: parseFloat(d["52WeekHigh"]) || null,
+    _raw_52wk_low: parseFloat(d["52WeekLow"]) || null,
+    _raw_debt_to_equity_ratio: parseFloat(d.DebtToEquityRatio ?? "0") / 100 || null,
   };
 }
 
@@ -85,6 +91,103 @@ function deriveSignal(vScore: number | null, changePct: number): string {
   if (vScore >= 50) return "Hold";
   if (vScore >= 30) return "Sell";
   return "Strong Sell";
+}
+
+/* ── On-Demand V-Score Calculator ─────────────────── */
+function calculateVScore(alpha: any, currentPrice: number) {
+  // --- Fundamentals (30%) ---
+  let peScore = 50;
+  if (alpha.pe_ratio !== null) {
+    const pe = alpha.pe_ratio;
+    if (pe > 0 && pe <= 10) peScore = 70;
+    else if (pe <= 15) peScore = 90;
+    else if (pe <= 20) peScore = 100;
+    else if (pe <= 25) peScore = 80;
+    else if (pe <= 35) peScore = 60;
+    else if (pe <= 50) peScore = 40;
+    else peScore = 20;
+  }
+
+  const roeVal = alpha._raw_roe !== null ? alpha._raw_roe * 100 : 0;
+  const roeScore = Math.min(100, Math.max(0, roeVal * 2));
+
+  const pmVal = alpha._raw_profit_margin !== null ? alpha._raw_profit_margin * 100 : 0;
+  const pmScore = Math.min(100, Math.max(0, pmVal * 3));
+
+  const rgVal = alpha._raw_revenue_growth !== null ? alpha._raw_revenue_growth * 100 : 0;
+  const rgScore = Math.min(100, Math.max(0, rgVal * 4));
+
+  const de = alpha._raw_debt_to_equity_ratio ?? 0;
+  const deScore = Math.max(0, 100 - de * 30);
+
+  const fundamentals = Math.round(peScore * 0.25 + roeScore * 0.25 + pmScore * 0.2 + rgScore * 0.15 + deScore * 0.15);
+
+  // --- Momentum (25%) ---
+  let positionScore = 50;
+  if (alpha._raw_52wk_high && alpha._raw_52wk_low && currentPrice) {
+    const range = alpha._raw_52wk_high - alpha._raw_52wk_low;
+    if (range > 0) {
+      positionScore = Math.round(((currentPrice - alpha._raw_52wk_low) / range) * 100);
+      positionScore = Math.min(100, Math.max(0, positionScore));
+    }
+  }
+
+  let betaMomScore = 70;
+  if (alpha.beta !== null) {
+    const b = alpha.beta;
+    if (b >= 0.8 && b <= 1.2) betaMomScore = 90;
+    else if (b >= 0.5 && b <= 1.5) betaMomScore = 70;
+    else betaMomScore = 40;
+  }
+
+  const momentum = Math.round(positionScore * 0.6 + betaMomScore * 0.4);
+
+  // --- Risk (20%) — inverted: lower risk = higher score ---
+  let riskScore = 70;
+  const betaPenalty = alpha.beta !== null ? Math.abs(alpha.beta - 1) * 30 : 15;
+  const debtPenalty = de > 2 ? 30 : de > 1 ? 15 : 0;
+  riskScore = Math.round(Math.max(0, Math.min(100, 100 - betaPenalty - debtPenalty)));
+
+  // --- Sentiment (25%) ---
+  let analystScore = 50;
+  if (alpha.analyst_rating !== null) {
+    analystScore = Math.round(((alpha.analyst_rating - 1) / 4) * 100);
+  }
+
+  let targetScore = 50;
+  if (alpha.analyst_target && currentPrice && currentPrice > 0) {
+    const upside = ((alpha.analyst_target - currentPrice) / currentPrice) * 100;
+    targetScore = Math.min(100, Math.max(0, Math.round(upside * 2)));
+  }
+
+  const sentiment = Math.round(analystScore * 0.5 + targetScore * 0.5);
+
+  // --- V-Score ---
+  const vScore = Math.round(fundamentals * 0.30 + momentum * 0.25 + riskScore * 0.20 + sentiment * 0.25);
+
+  // --- Why Explanation ---
+  const parts: string[] = [];
+  if (fundamentals >= 70) parts.push("strong fundamentals");
+  else if (fundamentals < 40) parts.push("weak fundamentals");
+  if (momentum >= 70) parts.push("positive momentum");
+  else if (momentum < 40) parts.push("weak momentum");
+  if (riskScore >= 70) parts.push("low risk profile");
+  else if (riskScore < 40) parts.push("elevated risk");
+  if (sentiment >= 70) parts.push("bullish sentiment");
+  else if (sentiment < 40) parts.push("bearish sentiment");
+
+  const why = parts.length > 0
+    ? `${alpha.name} scores ${vScore}/100 driven by ${parts.join(", ")}. Fundamentals: ${fundamentals}, Momentum: ${momentum}, Risk: ${riskScore}, Sentiment: ${sentiment}.`
+    : `${alpha.name} scores ${vScore}/100 with balanced metrics across all pillars. Fundamentals: ${fundamentals}, Momentum: ${momentum}, Risk: ${riskScore}, Sentiment: ${sentiment}.`;
+
+  return {
+    v_score: Math.min(100, Math.max(0, vScore)),
+    fundamentals: Math.min(100, Math.max(0, fundamentals)),
+    momentum: Math.min(100, Math.max(0, momentum)),
+    risk: Math.min(100, Math.max(0, riskScore)),
+    sentiment: Math.min(100, Math.max(0, sentiment)),
+    why_explanation: why,
+  };
 }
 
 /* ── Main handler ─────────────────────────────────── */
@@ -126,7 +229,42 @@ Deno.serve(async (req) => {
       });
     }
 
+    // --- On-demand scoring on cache miss ---
+    let finalScores = scores;
     const hasScores = !!scores?.v_score;
+
+    if (!hasScores && alpha) {
+      // Calculate V-Score on the fly
+      const computed = calculateVScore(alpha, price.current_price);
+      finalScores = {
+        ticker,
+        name: alpha.name,
+        sector: alpha.sector,
+        industry: alpha.industry,
+        ...computed,
+        updated_at: new Date().toISOString(),
+      };
+
+      // Fire-and-forget upsert to cache
+      sb.from("stock_scores")
+        .upsert(
+          {
+            ticker,
+            name: alpha.name,
+            sector: alpha.sector,
+            industry: alpha.industry,
+            v_score: computed.v_score,
+            fundamentals: computed.fundamentals,
+            momentum: computed.momentum,
+            risk: computed.risk,
+            sentiment: computed.sentiment,
+            why_explanation: computed.why_explanation,
+            updated_at: new Date().toISOString(),
+          },
+          { onConflict: "ticker" }
+        )
+        .then(() => {});
+    }
 
     // Upsert to stock_universe for future search
     if (alpha) {
@@ -146,9 +284,9 @@ Deno.serve(async (req) => {
 
     const response = {
       ticker,
-      name: scores?.name || alpha?.name || ticker,
-      sector: scores?.sector || alpha?.sector || "",
-      industry: scores?.industry || alpha?.industry || "",
+      name: finalScores?.name || alpha?.name || ticker,
+      sector: finalScores?.sector || alpha?.sector || "",
+      industry: finalScores?.industry || alpha?.industry || "",
       current_price: price.current_price,
       day_change_pct: price.day_change_pct,
       volume: price.volume,
@@ -168,14 +306,14 @@ Deno.serve(async (req) => {
       analyst_target: alpha?.analyst_target || null,
       analyst_rating: alpha?.analyst_rating || null,
       year_change: null,
-      v_score: scores?.v_score ?? null,
-      fundamentals: scores?.fundamentals ?? null,
-      momentum: scores?.momentum ?? null,
-      risk: scores?.risk ?? null,
-      sentiment: scores?.sentiment ?? null,
-      signal: deriveSignal(scores?.v_score ?? null, price.day_change_pct),
-      has_scores: hasScores,
-      why_explanation: scores?.why_explanation || null,
+      v_score: finalScores?.v_score ?? null,
+      fundamentals: finalScores?.fundamentals ?? null,
+      momentum: finalScores?.momentum ?? null,
+      risk: finalScores?.risk ?? null,
+      sentiment: finalScores?.sentiment ?? null,
+      signal: deriveSignal(finalScores?.v_score ?? null, price.day_change_pct),
+      has_scores: !!(finalScores?.v_score),
+      why_explanation: finalScores?.why_explanation || null,
     };
 
     return new Response(JSON.stringify(response), {

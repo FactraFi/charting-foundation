@@ -8,3 +8,9 @@ verify_jwt = false
 
 [functions.stock-search]
 verify_jwt = false
+
+[functions.trigger-railway]
+verify_jwt = false
+
+[functions.seed-scores]
+verify_jwt = false
