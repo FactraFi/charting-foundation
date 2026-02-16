@@ -30,11 +30,28 @@ async function fetchYahooPrice(ticker: string) {
 
 /* ── Alpha Vantage company overview ───────────────── */
 async function fetchAlphaOverview(ticker: string, apiKey: string) {
-  const url = `https://www.alphavantage.co/query?function=OVERVIEW&symbol=${encodeURIComponent(ticker)}&apikey=${apiKey}`;
-  const res = await fetch(url);
-  if (!res.ok) throw new Error(`Alpha Vantage error ${res.status}`);
-  const d = await res.json();
+  const [overviewRes, balanceRes] = await Promise.all([
+    fetch(`https://www.alphavantage.co/query?function=OVERVIEW&symbol=${encodeURIComponent(ticker)}&apikey=${apiKey}`),
+    fetch(`https://www.alphavantage.co/query?function=BALANCE_SHEET&symbol=${encodeURIComponent(ticker)}&apikey=${apiKey}`),
+  ]);
+  if (!overviewRes.ok) throw new Error(`Alpha Vantage error ${overviewRes.status}`);
+  const d = await overviewRes.json();
   if (d.Note || d["Error Message"] || !d.Symbol) return null;
+
+  // Calculate D/E from balance sheet
+  let debtToEquity: number | null = null;
+  try {
+    const bs = await balanceRes.json();
+    const latest = bs?.quarterlyReports?.[0] ?? bs?.annualReports?.[0];
+    if (latest) {
+      const totalLiabilities = parseFloat(latest.totalLiabilities);
+      const equity = parseFloat(latest.totalShareholderEquity);
+      if (equity > 0 && !isNaN(totalLiabilities) && !isNaN(equity)) {
+        debtToEquity = Math.round((totalLiabilities / equity) * 100) / 100;
+      }
+    }
+  } catch { /* balance sheet unavailable */ }
+
   return {
     name: d.Name ?? ticker,
     sector: d.Sector ?? "",
@@ -42,7 +59,7 @@ async function fetchAlphaOverview(ticker: string, apiKey: string) {
     market_cap: formatMarketCap(d.MarketCapitalization),
     pe_ratio: parseFloat(d.PERatio) || null,
     forward_pe: parseFloat(d.ForwardPE) || null,
-    debt_to_equity: parseFloat(d.DebtToEquityRatio ?? "0") / 100 || null,
+    debt_to_equity: debtToEquity,
     roe: d.ReturnOnEquityTTM ? `${(parseFloat(d.ReturnOnEquityTTM) * 100).toFixed(1)}%` : null,
     roce: d.ReturnOnAssetsTTM ? `${(parseFloat(d.ReturnOnAssetsTTM) * 100).toFixed(1)}%` : null,
     dividend_yield: parseFloat(d.DividendYield) ? parseFloat(d.DividendYield) * 100 : null,
@@ -59,7 +76,7 @@ async function fetchAlphaOverview(ticker: string, apiKey: string) {
     _raw_revenue_growth: parseFloat(d.QuarterlyRevenueGrowthYOY) || null,
     _raw_52wk_high: parseFloat(d["52WeekHigh"]) || null,
     _raw_52wk_low: parseFloat(d["52WeekLow"]) || null,
-    _raw_debt_to_equity_ratio: parseFloat(d.DebtToEquityRatio ?? "0") / 100 || null,
+    _raw_debt_to_equity_ratio: debtToEquity,
   };
 }
 
