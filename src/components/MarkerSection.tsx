@@ -4,6 +4,7 @@ import {
   TrendingUp, MessageSquare, BarChart3
 } from "lucide-react";
 import type { StockData } from "@/lib/api";
+import { useStockSummary } from "@/hooks/use-stock-summary";
 
 interface MarkerSectionProps {
   stock: StockData;
@@ -62,6 +63,7 @@ const getMarkerIcon = (type: string) => {
 const MarkerSection = ({ stock, onBack }: MarkerSectionProps) => {
   const [selectedMarker, setSelectedMarker] = useState('Technical');
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const { data: summary, isLoading: summaryLoading } = useStockSummary(stock);
 
   const markerDetail = buildMarkerDetail(stock);
   const currentMetrics = markerDetail[selectedMarker as keyof typeof markerDetail];
@@ -98,8 +100,12 @@ const MarkerSection = ({ stock, onBack }: MarkerSectionProps) => {
             </div>
 
             <div className="text-xs text-muted-foreground leading-relaxed max-w-[350px]">
-              {stock.name} — {stock.sector} / {stock.industry}. Signal: <span className="text-primary font-bold">{stock.signal}</span>
-              {!stock.has_scores && <span className="ml-1 text-yellow-500">(Score pending)</span>}
+              <span className="font-bold text-foreground underline underline-offset-2">Summary:</span>{' '}
+              {summaryLoading ? (
+                <span className="italic text-muted-foreground">Generating summary...</span>
+              ) : (
+                <span>{summary ?? `${stock.name} — ${stock.sector} / ${stock.industry}. Signal: ${stock.signal}`}</span>
+              )}
             </div>
           </div>
         </div>
