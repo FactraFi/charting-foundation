@@ -1,44 +1,39 @@
 
 
-# Fix: Debt/Equity Always Showing N/A
+# UI Polish: Three Small Fixes
 
-## Root Cause
+## 1. Rename "Confidence Score" to "FactraFi Score" on the hero gauge
 
-In `supabase/functions/stock-data/index.ts` line 45, the code references a **wrong field name** from Alpha Vantage:
+**File:** `src/components/FactraScoreGauge.tsx` (line 126)
 
-```
-// Current (WRONG)
-debt_to_equity: parseFloat(d.DebtToEquityRatio ?? "0") / 100 || null,
-```
+Currently the large variant shows "Confidence Score" while the medium variant shows "FactraFi Score". Change both to always show **"FactraFi Score"**.
 
-The correct Alpha Vantage OVERVIEW field name is `DebtEquityRatio`, not `DebtToEquityRatio`. Since the field doesn't exist, it always falls back to `"0"`, which becomes `0 / 100 = 0`, and `0 || null = null`.
+Replace the ternary `{isMedium ? "FactraFi Score" : "Confidence Score"}` with just `"FactraFi Score"`.
 
-Additionally, dividing by 100 is incorrect -- Alpha Vantage already returns the D/E ratio as a plain number (e.g., `"41.04"` means 0.41x), not as a percentage. The division by 100 was wrong.
+## 2. Match the Price chart height to V-Score History
 
-## Fix
+**File:** `src/components/StockDetailView.tsx` (line 208)
 
-**One-line change** in `supabase/functions/stock-data/index.ts`, line 45:
+The Price chart container has a fixed `h-[400px]` but the V-Score History panel has no fixed height (it sizes naturally from its `h-[320px]` inner chart + padding + legend, totaling roughly 460px+). The fix is to remove the fixed height from the Price chart and let it stretch to match the V-Score History height via the grid.
 
-```
-// Fixed (CORRECT field name, no /100)
-debt_to_equity: parseFloat(d.DebtEquityRatio) || null,
-```
+- Line 208: Change `h-[400px]` to `min-h-[400px]` and add `h-full` so the grid stretches both columns equally. The resulting class becomes: `bg-background border border-border rounded-xl p-6 min-h-[400px] h-full relative overflow-hidden flex flex-col group`.
 
-Also fix the corresponding raw value used in scoring (line 62):
+## 3. Make "Summary:" label green
 
-```
-// Current
-_raw_debt_to_equity_ratio: parseFloat(d.DebtToEquityRatio ?? "0") / 100 || null,
+**File:** `src/components/DashboardView.tsx` (line 312)
 
-// Fixed
-_raw_debt_to_equity_ratio: parseFloat(d.DebtEquityRatio) || null,
-```
+Change the "Summary:" span from `text-foreground` to `text-primary` so it uses the brand green color.
 
-## Technical Details
+Replace: `className="font-bold text-foreground underline underline-offset-2"`
+With: `className="font-bold text-primary underline underline-offset-2"`
 
-| File | Change |
-|------|--------|
-| `supabase/functions/stock-data/index.ts` | Line 45: Fix field name from `DebtToEquityRatio` to `DebtEquityRatio`, remove `/100`. Line 62: Same fix for `_raw_debt_to_equity_ratio`. |
+## Files to Modify
 
-No frontend changes needed -- all display components already handle `debt_to_equity` correctly via `.toFixed(2)`. The edge function just needs to be redeployed after the fix.
+| File | Line(s) | Change |
+|------|---------|--------|
+| `src/components/FactraScoreGauge.tsx` | 126 | Replace ternary with `"FactraFi Score"` |
+| `src/components/StockDetailView.tsx` | 208 | Change `h-[400px]` to `min-h-[400px] h-full` |
+| `src/components/DashboardView.tsx` | 312 | Change `text-foreground` to `text-primary` |
+
+All three are single-line CSS/text changes with no logic impact.
 
