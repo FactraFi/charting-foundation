@@ -1,1 +1,7 @@
 project_id = "rtxscumviqccthvuwzxl"
+
+[functions.stock-data]
+verify_jwt = false
+
+[functions.stock-search]
+verify_jwt = false

@@ -5,27 +5,28 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Slider } from "@/components/ui/slider";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Briefcase, TrendingUp, TrendingDown, DollarSign, PieChart, RefreshCw, ArrowUpRight, ArrowDownRight } from "lucide-react";
-import { MOCK_STOCKS, type MockStock } from "@/data/mock-data";
+import { useStockData } from "@/hooks/use-stock-data";
+import type { StockData } from "@/lib/api";
 import {
   PieChart as RePieChart, Pie, Cell, ResponsiveContainer,
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip
 } from "@/recharts-adapter";
 
-// ---------- Portfolio mock data ----------
+// ---------- Portfolio holdings (paper trading) ----------
 
 interface Holding {
-  stock: MockStock;
+  ticker: string;
   shares: number;
   avgCost: number;
   allocation: number;
 }
 
 const INITIAL_HOLDINGS: Holding[] = [
-  { stock: MOCK_STOCKS[0], shares: 12, avgCost: 780.00, allocation: 32 },
-  { stock: MOCK_STOCKS[2], shares: 45, avgCost: 142.30, allocation: 22 },
-  { stock: MOCK_STOCKS[6], shares: 18, avgCost: 385.20, allocation: 22 },
-  { stock: MOCK_STOCKS[4], shares: 30, avgCost: 165.50, allocation: 15 },
-  { stock: MOCK_STOCKS[3], shares: 120, avgCost: 18.40, allocation: 9 },
+  { ticker: 'NVDA', shares: 12, avgCost: 780.00, allocation: 32 },
+  { ticker: 'AMD', shares: 45, avgCost: 142.30, allocation: 22 },
+  { ticker: 'MSFT', shares: 18, avgCost: 385.20, allocation: 22 },
+  { ticker: 'AAPL', shares: 30, avgCost: 165.50, allocation: 15 },
+  { ticker: 'PLTR', shares: 120, avgCost: 18.40, allocation: 9 },
 ];
 
 const PERF_HISTORY = [
@@ -45,6 +46,56 @@ const PIE_COLORS = [
   "hsl(0 84% 60%)",
 ];
 
+// ---------- Holding Row (fetches own live price) ----------
+
+const HoldingRow = ({
+  holding,
+  onSelectStock,
+  onTrade,
+}: {
+  holding: Holding;
+  onSelectStock: (stock: StockData) => void;
+  onTrade: (stock: StockData, type: 'buy' | 'sell') => void;
+}) => {
+  const { data: stock } = useStockData(holding.ticker);
+  const price = stock?.current_price ?? holding.avgCost;
+  const pnl = (price - holding.avgCost) * holding.shares;
+  const pnlPct = ((price - holding.avgCost) / holding.avgCost * 100).toFixed(1);
+  const positive = pnl >= 0;
+
+  return (
+    <TableRow className="cursor-pointer" onClick={() => stock && onSelectStock(stock)}>
+      <TableCell>
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded-lg bg-secondary flex items-center justify-center text-xs font-bold text-primary">{holding.ticker[0]}</div>
+          <div>
+            <div className="font-bold text-foreground text-sm">{holding.ticker}</div>
+            <div className="text-[10px] text-muted-foreground">{stock?.name ?? holding.ticker}</div>
+          </div>
+        </div>
+      </TableCell>
+      <TableCell className="text-right tabular-nums font-medium">{holding.shares}</TableCell>
+      <TableCell className="text-right tabular-nums text-muted-foreground">${holding.avgCost.toFixed(2)}</TableCell>
+      <TableCell className="text-right tabular-nums font-medium">${price.toFixed(2)}</TableCell>
+      <TableCell className={`text-right tabular-nums font-bold ${positive ? "text-primary" : "text-destructive"}`}>
+        {positive ? "+" : ""}${pnl.toFixed(2)}
+        <div className="text-[10px]">{positive ? "+" : ""}{pnlPct}%</div>
+      </TableCell>
+      <TableCell className="text-right tabular-nums text-muted-foreground">{holding.allocation}%</TableCell>
+      <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
+        <div className="flex gap-1 justify-end">
+          {stock && (
+            <>
+              <Button size="sm" variant="ghost" className="text-primary text-xs h-7 px-2" onClick={() => onTrade(stock, "buy")}>Buy</Button>
+              <Button size="sm" variant="ghost" className="text-destructive text-xs h-7 px-2" onClick={() => onTrade(stock, "sell")}>Sell</Button>
+            </>
+          )}
+        </div>
+      </TableCell>
+    </TableRow>
+  );
+};
+
 // ---------- Rebalance Modal ----------
 
 const RebalanceModal = ({
@@ -57,7 +108,7 @@ const RebalanceModal = ({
   holdings: Holding[];
 }) => {
   const [allocations, setAllocations] = useState(
-    holdings.map((h) => ({ symbol: h.stock.symbol, target: h.allocation }))
+    holdings.map((h) => ({ symbol: h.ticker, target: h.allocation }))
   );
 
   const totalAlloc = allocations.reduce((s, a) => s + a.target, 0);
@@ -82,12 +133,7 @@ const RebalanceModal = ({
                 <span className="font-bold text-foreground">{a.symbol}</span>
                 <span className="tabular-nums text-muted-foreground">{a.target}%</span>
               </div>
-              <Slider
-                value={[a.target]}
-                max={100}
-                step={1}
-                onValueChange={([v]) => updateAlloc(i, v)}
-              />
+              <Slider value={[a.target]} max={100} step={1} onValueChange={([v]) => updateAlloc(i, v)} />
             </div>
           ))}
           <div className={`text-sm text-right font-bold ${totalAlloc === 100 ? "text-primary" : "text-destructive"}`}>
@@ -106,21 +152,16 @@ const RebalanceModal = ({
 // ---------- Portfolio View ----------
 
 interface PortfolioViewProps {
-  onSelectStock: (stock: MockStock) => void;
-  onTrade: (stock: MockStock, type: "buy" | "sell") => void;
+  onSelectStock: (stock: StockData) => void;
+  onTrade: (stock: StockData, type: "buy" | "sell") => void;
 }
 
 const PortfolioView = ({ onSelectStock, onTrade }: PortfolioViewProps) => {
   const [showRebalance, setShowRebalance] = useState(false);
   const holdings = INITIAL_HOLDINGS;
 
-  const totalValue = holdings.reduce((s, h) => s + h.shares * h.stock.price, 0);
-  const totalCost = holdings.reduce((s, h) => s + h.shares * h.avgCost, 0);
-  const totalPnl = totalValue - totalCost;
-  const totalPnlPct = ((totalPnl / totalCost) * 100).toFixed(2);
-
   const pieData = holdings.map((h) => ({
-    name: h.stock.symbol,
+    name: h.ticker,
     value: h.allocation,
   }));
 
@@ -139,13 +180,13 @@ const PortfolioView = ({ onSelectStock, onTrade }: PortfolioViewProps) => {
         </Button>
       </div>
 
-      {/* KPI Row */}
+      {/* KPI Row — simplified since we'd need all prices loaded */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {[
-          { label: "Total Value", value: `$${totalValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, icon: DollarSign, color: "text-primary" },
-          { label: "Total P&L", value: `${totalPnl >= 0 ? "+" : ""}$${totalPnl.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, icon: totalPnl >= 0 ? TrendingUp : TrendingDown, color: totalPnl >= 0 ? "text-primary" : "text-destructive" },
-          { label: "Return", value: `${Number(totalPnlPct) >= 0 ? "+" : ""}${totalPnlPct}%`, icon: totalPnl >= 0 ? ArrowUpRight : ArrowDownRight, color: totalPnl >= 0 ? "text-primary" : "text-destructive" },
           { label: "Positions", value: holdings.length.toString(), icon: PieChart, color: "text-info" },
+          { label: "Paper Trading", value: "Active", icon: Briefcase, color: "text-primary" },
+          { label: "Mode", value: "Simulation", icon: TrendingUp, color: "text-primary" },
+          { label: "Currency", value: "USD", icon: DollarSign, color: "text-foreground" },
         ].map((kpi) => (
           <Card key={kpi.label} className="border-border hover-glow">
             <CardContent className="p-4 flex items-center gap-3">
@@ -163,7 +204,6 @@ const PortfolioView = ({ onSelectStock, onTrade }: PortfolioViewProps) => {
 
       {/* Charts row */}
       <div className="grid lg:grid-cols-3 gap-6">
-        {/* Performance chart */}
         <Card className="lg:col-span-2 border-border">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-bold text-muted-foreground uppercase tracking-wider">Performance History</CardTitle>
@@ -189,7 +229,6 @@ const PortfolioView = ({ onSelectStock, onTrade }: PortfolioViewProps) => {
           </CardContent>
         </Card>
 
-        {/* Allocation pie */}
         <Card className="border-border">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-bold text-muted-foreground uppercase tracking-wider">Allocation</CardTitle>
@@ -209,9 +248,9 @@ const PortfolioView = ({ onSelectStock, onTrade }: PortfolioViewProps) => {
             </div>
             <div className="flex flex-wrap gap-3 mt-2 justify-center">
               {holdings.map((h, i) => (
-                <div key={h.stock.symbol} className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <div key={h.ticker} className="flex items-center gap-1.5 text-xs text-muted-foreground">
                   <div className="w-2.5 h-2.5 rounded-full" style={{ background: PIE_COLORS[i % PIE_COLORS.length] }} />
-                  {h.stock.symbol}
+                  {h.ticker}
                 </div>
               ))}
             </div>
@@ -238,38 +277,9 @@ const PortfolioView = ({ onSelectStock, onTrade }: PortfolioViewProps) => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {holdings.map((h) => {
-                const pnl = (h.stock.price - h.avgCost) * h.shares;
-                const pnlPct = ((h.stock.price - h.avgCost) / h.avgCost * 100).toFixed(1);
-                const positive = pnl >= 0;
-                return (
-                  <TableRow key={h.stock.symbol} className="cursor-pointer" onClick={() => onSelectStock(h.stock)}>
-                    <TableCell>
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-lg bg-secondary flex items-center justify-center text-xs font-bold text-primary">{h.stock.symbol[0]}</div>
-                        <div>
-                          <div className="font-bold text-foreground text-sm">{h.stock.symbol}</div>
-                          <div className="text-[10px] text-muted-foreground">{h.stock.name}</div>
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-right tabular-nums font-medium">{h.shares}</TableCell>
-                    <TableCell className="text-right tabular-nums text-muted-foreground">${h.avgCost.toFixed(2)}</TableCell>
-                    <TableCell className="text-right tabular-nums font-medium">${h.stock.price.toFixed(2)}</TableCell>
-                    <TableCell className={`text-right tabular-nums font-bold ${positive ? "text-primary" : "text-destructive"}`}>
-                      {positive ? "+" : ""}${pnl.toFixed(2)}
-                      <div className="text-[10px]">{positive ? "+" : ""}{pnlPct}%</div>
-                    </TableCell>
-                    <TableCell className="text-right tabular-nums text-muted-foreground">{h.allocation}%</TableCell>
-                    <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
-                      <div className="flex gap-1 justify-end">
-                        <Button size="sm" variant="ghost" className="text-primary text-xs h-7 px-2" onClick={() => onTrade(h.stock, "buy")}>Buy</Button>
-                        <Button size="sm" variant="ghost" className="text-destructive text-xs h-7 px-2" onClick={() => onTrade(h.stock, "sell")}>Sell</Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
+              {holdings.map((h) => (
+                <HoldingRow key={h.ticker} holding={h} onSelectStock={onSelectStock} onTrade={onTrade} />
+              ))}
             </TableBody>
           </Table>
         </CardContent>

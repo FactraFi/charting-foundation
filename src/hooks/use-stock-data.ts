@@ -1,32 +1,41 @@
 import { useQuery } from "@tanstack/react-query";
-import { fetchFullStockData, fetchStockScores, fetchLivePrice } from "@/lib/api";
-import type { StockData, StockScores, LivePrice } from "@/lib/api";
+import { useState, useEffect } from "react";
+import { fetchStockData, searchStocks, fetchScoredUniverse } from "@/lib/api";
+import type { StockData, SearchResult, StockScoreRow } from "@/lib/api";
 
-/** Full stock data (scores + live price) */
+/** Full stock data (scores + live price + fundamentals) */
 export const useStockData = (ticker: string, enabled = true) =>
   useQuery<StockData>({
-    queryKey: ["stock", ticker],
-    queryFn: () => fetchFullStockData(ticker),
+    queryKey: ["stock-data", ticker],
+    queryFn: () => fetchStockData(ticker),
     enabled: enabled && !!ticker,
-    staleTime: 30_000, // 30s — live prices refresh
-    refetchInterval: 60_000, // auto-refresh every 60s
+    staleTime: 30_000,
+    refetchInterval: 60_000,
   });
 
-/** Only pre-calculated scores from Railway */
-export const useStockScores = (ticker: string, enabled = true) =>
-  useQuery<StockScores>({
-    queryKey: ["stock-scores", ticker],
-    queryFn: () => fetchStockScores(ticker),
-    enabled: enabled && !!ticker,
-    staleTime: 5 * 60_000, // 5 min — scores are batch-calculated
+/** Universal stock search with debounce */
+export const useStockSearch = (query: string, enabled = true) => {
+  const [debouncedQuery, setDebouncedQuery] = useState(query);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedQuery(query), 300);
+    return () => clearTimeout(timer);
+  }, [query]);
+
+  return useQuery<SearchResult[]>({
+    queryKey: ["stock-search", debouncedQuery],
+    queryFn: () => searchStocks(debouncedQuery),
+    enabled: enabled && debouncedQuery.length >= 1,
+    staleTime: 60_000,
+  });
+};
+
+/** Scored universe from stock_scores table (for Screener default view) */
+export const useStockUniverse = () =>
+  useQuery<StockScoreRow[]>({
+    queryKey: ["stock-universe"],
+    queryFn: fetchScoredUniverse,
+    staleTime: 5 * 60_000,
   });
 
-/** Only live price from yfinance */
-export const useLivePrice = (ticker: string, enabled = true) =>
-  useQuery<LivePrice>({
-    queryKey: ["live-price", ticker],
-    queryFn: () => fetchLivePrice(ticker),
-    enabled: enabled && !!ticker,
-    staleTime: 15_000,
-    refetchInterval: 30_000,
-  });
+export type { StockData, SearchResult, StockScoreRow };

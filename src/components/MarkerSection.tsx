@@ -3,57 +3,50 @@ import {
   ChevronLeft, ChevronDown, Plus, RefreshCcw,
   TrendingUp, MessageSquare, BarChart3
 } from "lucide-react";
-import type { MockStock } from "@/data/mock-data";
+import type { StockData } from "@/lib/api";
 
 interface MarkerSectionProps {
-  stock: MockStock;
+  stock: StockData;
   onBack: () => void;
 }
 
-const MARKER_DATA_DETAIL: Record<string, { label: string; value: string; color: string }[]> = {
+const buildMarkerDetail = (stock: StockData) => ({
   Technical: [
-    { label: 'RSI (14)', value: '68.5', color: 'text-primary' },
-    { label: 'MACD Signal', value: 'Bullish', color: 'text-primary' },
-    { label: 'MA Cross (50/200)', value: 'Golden', color: 'text-primary' },
-    { label: 'Volume Trend', value: 'Above Avg', color: 'text-primary' },
-    { label: 'Bollinger Bands', value: 'Upper Band', color: 'text-yellow-500' },
-    { label: 'Stochastic', value: 'Overbought', color: 'text-yellow-500' },
-    { label: 'ADX (14)', value: '42.3', color: 'text-primary' },
-    { label: 'ATR (14)', value: '12.45', color: 'text-foreground' },
-    { label: 'OBV Trend', value: 'Rising', color: 'text-primary' },
-    { label: 'Parabolic SAR', value: 'Bullish', color: 'text-primary' },
-    { label: 'CCI (20)', value: '125.8', color: 'text-yellow-500' },
-    { label: 'Williams %R', value: '-15.2', color: 'text-primary' },
+    { label: 'Signal', value: stock.signal, color: stock.v_score && stock.v_score >= 60 ? 'text-primary' : 'text-destructive' },
+    { label: 'Day Change', value: `${stock.day_change_pct > 0 ? '+' : ''}${stock.day_change_pct}%`, color: stock.day_change_pct >= 0 ? 'text-primary' : 'text-destructive' },
+    { label: 'Volume', value: formatVol(stock.volume), color: 'text-foreground' },
+    { label: 'Beta', value: stock.beta?.toFixed(2) ?? 'N/A', color: stock.beta && stock.beta > 1.2 ? 'text-yellow-500' : 'text-primary' },
+    { label: 'Prev Close', value: `$${stock.previous_close.toFixed(2)}`, color: 'text-foreground' },
+    { label: 'Momentum Score', value: stock.momentum?.toString() ?? 'Pending', color: stock.momentum && stock.momentum >= 60 ? 'text-primary' : 'text-muted-foreground' },
   ],
   Sentiment: [
-    { label: 'Analyst Rating', value: '⭐⭐⭐⭐', color: 'text-yellow-500' },
-    { label: 'Avg Price Target', value: '$950', color: 'text-primary' },
-    { label: 'News Sentiment', value: 'Positive', color: 'text-primary' },
-    { label: 'Social Media', value: 'Bullish', color: 'text-primary' },
-    { label: 'Inst. Ownership', value: '67.2%', color: 'text-foreground' },
-    { label: 'Inst. Flow (30D)', value: '+$2.3B', color: 'text-primary' },
-    { label: 'Analyst Upgrades', value: '12', color: 'text-primary' },
-    { label: 'Analyst Downgrades', value: '2', color: 'text-destructive' },
-    { label: 'Short Interest', value: '3.2%', color: 'text-primary' },
-    { label: 'Put/Call Ratio', value: '0.68', color: 'text-primary' },
-    { label: 'Insider Buying', value: 'Active', color: 'text-primary' },
-    { label: 'Hedge Fund Activity', value: 'Accumulating', color: 'text-primary' },
+    { label: 'Analyst Rating', value: stock.analyst_rating ? `${stock.analyst_rating.toFixed(1)}/5` : 'N/A', color: stock.analyst_rating && stock.analyst_rating >= 4 ? 'text-primary' : 'text-yellow-500' },
+    { label: 'Price Target', value: stock.analyst_target ? `$${stock.analyst_target.toFixed(2)}` : 'N/A', color: stock.analyst_target && stock.analyst_target > stock.current_price ? 'text-primary' : 'text-foreground' },
+    { label: 'Dividend Yield', value: stock.dividend_yield ? `${stock.dividend_yield.toFixed(2)}%` : 'N/A', color: 'text-foreground' },
+    { label: 'EPS Growth', value: stock.eps_growth ?? 'N/A', color: 'text-primary' },
+    { label: 'Sentiment Score', value: stock.sentiment?.toString() ?? 'Pending', color: stock.sentiment && stock.sentiment >= 60 ? 'text-primary' : 'text-muted-foreground' },
+    { label: 'Market Cap', value: stock.market_cap, color: 'text-foreground' },
   ],
   Fundamental: [
-    { label: 'P/E Ratio (TTM)', value: '72.5', color: 'text-foreground' },
-    { label: 'Forward P/E', value: '45.2', color: 'text-primary' },
-    { label: 'EPS Growth (YoY)', value: '+24.5%', color: 'text-primary' },
-    { label: 'Revenue Growth', value: '+18.3%', color: 'text-primary' },
-    { label: 'ROE', value: '32.8%', color: 'text-primary' },
-    { label: 'Debt/Equity', value: '0.15', color: 'text-primary' },
-    { label: 'Profit Margin', value: '28.5%', color: 'text-primary' },
-    { label: 'Operating Margin', value: '35.2%', color: 'text-primary' },
-    { label: 'Current Ratio', value: '2.8', color: 'text-primary' },
-    { label: 'Quick Ratio', value: '2.3', color: 'text-primary' },
-    { label: 'Free Cash Flow', value: '$12.5B', color: 'text-primary' },
-    { label: 'Dividend Yield', value: '0.8%', color: 'text-foreground' },
+    { label: 'P/E Ratio (TTM)', value: stock.pe_ratio?.toFixed(1) ?? 'N/A', color: stock.pe_ratio && stock.pe_ratio > 30 ? 'text-yellow-500' : 'text-foreground' },
+    { label: 'Forward P/E', value: stock.forward_pe?.toFixed(1) ?? 'N/A', color: 'text-primary' },
+    { label: 'ROE', value: stock.roe ?? 'N/A', color: 'text-primary' },
+    { label: 'ROCE', value: stock.roce ?? 'N/A', color: 'text-primary' },
+    { label: 'Debt/Equity', value: stock.debt_to_equity?.toFixed(2) ?? 'N/A', color: stock.debt_to_equity && stock.debt_to_equity < 1 ? 'text-primary' : 'text-yellow-500' },
+    { label: 'Profit Margin', value: stock.profit_margin ?? 'N/A', color: 'text-primary' },
+    { label: 'Operating Margin', value: stock.operating_margin ?? 'N/A', color: 'text-primary' },
+    { label: 'Revenue Growth', value: stock.revenue_growth ?? 'N/A', color: 'text-primary' },
+    { label: 'EPS Growth', value: stock.eps_growth ?? 'N/A', color: 'text-primary' },
+    { label: 'Fundamentals Score', value: stock.fundamentals?.toString() ?? 'Pending', color: stock.fundamentals && stock.fundamentals >= 60 ? 'text-primary' : 'text-muted-foreground' },
   ],
-};
+});
+
+function formatVol(v: number): string {
+  if (v >= 1e9) return `${(v / 1e9).toFixed(1)}B`;
+  if (v >= 1e6) return `${(v / 1e6).toFixed(0)}M`;
+  if (v >= 1e3) return `${(v / 1e3).toFixed(0)}K`;
+  return v.toString();
+}
 
 const markerTypes = ['Technical', 'Sentiment', 'Fundamental'] as const;
 
@@ -70,7 +63,8 @@ const MarkerSection = ({ stock, onBack }: MarkerSectionProps) => {
   const [selectedMarker, setSelectedMarker] = useState('Technical');
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
-  const currentMetrics = MARKER_DATA_DETAIL[selectedMarker];
+  const markerDetail = buildMarkerDetail(stock);
+  const currentMetrics = markerDetail[selectedMarker as keyof typeof markerDetail];
 
   return (
     <div className="bg-background border border-border rounded-xl p-6 hover:border-primary/30 transition-all relative overflow-hidden group">
@@ -83,11 +77,11 @@ const MarkerSection = ({ stock, onBack }: MarkerSectionProps) => {
             <ChevronLeft size={24} />
           </button>
           <div className="w-16 h-16 rounded-full bg-secondary flex items-center justify-center text-lg font-bold text-foreground border border-border shadow-md">
-            {stock.symbol[0]}
+            {stock.ticker[0]}
           </div>
           <div className="flex-1">
             <div className="flex items-center gap-3 mb-2">
-              <div className="text-4xl font-bold text-foreground tracking-tight">{stock.symbol}</div>
+              <div className="text-4xl font-bold text-foreground tracking-tight">{stock.ticker}</div>
               <button className="flex items-center gap-2 px-3 py-1.5 rounded-full border border-border text-xs font-bold text-muted-foreground hover:bg-foreground/5 transition-colors">
                 <Plus size={12} /> Watchlist
               </button>
@@ -97,14 +91,15 @@ const MarkerSection = ({ stock, onBack }: MarkerSectionProps) => {
             </div>
 
             <div className="flex items-baseline gap-3 mb-4">
-              <span className="text-4xl font-bold text-foreground tracking-tight">${stock.price.toFixed(2)}</span>
-              <span className={`text-base font-bold px-2.5 py-1 rounded ${stock.change >= 0 ? 'bg-primary/20 text-primary' : 'bg-destructive/20 text-destructive'}`}>
-                {stock.change > 0 ? '+' : ''}{stock.change}%
+              <span className="text-4xl font-bold text-foreground tracking-tight">${stock.current_price.toFixed(2)}</span>
+              <span className={`text-base font-bold px-2.5 py-1 rounded ${stock.day_change_pct >= 0 ? 'bg-primary/20 text-primary' : 'bg-destructive/20 text-destructive'}`}>
+                {stock.day_change_pct > 0 ? '+' : ''}{stock.day_change_pct}%
               </span>
             </div>
 
             <div className="text-xs text-muted-foreground leading-relaxed max-w-[350px]">
               {stock.name} — {stock.sector} / {stock.industry}. Signal: <span className="text-primary font-bold">{stock.signal}</span>
+              {!stock.has_scores && <span className="ml-1 text-yellow-500">(Score pending)</span>}
             </div>
           </div>
         </div>

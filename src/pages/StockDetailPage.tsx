@@ -1,18 +1,29 @@
 import { useNavigate, useParams } from "react-router-dom";
 import StockDetailView from "@/components/StockDetailView";
 import TradeModal from "@/components/TradeModal";
-import { MOCK_STOCKS } from "@/data/mock-data";
-import type { MockStock } from "@/data/mock-data";
+import { useStockData } from "@/hooks/use-stock-data";
+import type { StockData } from "@/lib/api";
 import { useState } from "react";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const StockDetailPage = () => {
   const navigate = useNavigate();
   const { symbol } = useParams<{ symbol: string }>();
-  const [tradeModal, setTradeModal] = useState<{ isOpen: boolean; stock: MockStock | null; type: 'buy' | 'sell' }>({ isOpen: false, stock: null, type: 'buy' });
+  const [tradeModal, setTradeModal] = useState<{ isOpen: boolean; stock: StockData | null; type: 'buy' | 'sell' }>({ isOpen: false, stock: null, type: 'buy' });
 
-  const stock = MOCK_STOCKS.find(s => s.symbol === symbol?.toUpperCase());
+  const { data: stock, isLoading, error } = useStockData(symbol?.toUpperCase() || '', !!symbol);
 
-  if (!stock) {
+  if (isLoading) {
+    return (
+      <div className="space-y-6 p-8">
+        <Skeleton className="h-32 rounded-xl" />
+        <Skeleton className="h-64 rounded-xl" />
+        <Skeleton className="h-96 rounded-xl" />
+      </div>
+    );
+  }
+
+  if (error || !stock) {
     return (
       <div className="flex items-center justify-center h-[60vh]">
         <div className="text-center space-y-4">
@@ -24,7 +35,7 @@ const StockDetailPage = () => {
     );
   }
 
-  const openTrade = (s: MockStock, type: 'buy' | 'sell' = 'buy') => {
+  const openTrade = (s: StockData, type: 'buy' | 'sell' = 'buy') => {
     setTradeModal({ isOpen: true, stock: s, type });
   };
 

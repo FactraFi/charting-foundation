@@ -1,21 +1,21 @@
 import { useNavigate } from "react-router-dom";
 import PortfolioView from "@/components/PortfolioView";
 import TradeModal from "@/components/TradeModal";
-import type { MockStock } from "@/data/mock-data";
+import type { StockData } from "@/lib/api";
 import { useState } from "react";
 
 const PortfolioPage = () => {
   const navigate = useNavigate();
-  const [tradeModal, setTradeModal] = useState<{ isOpen: boolean; stock: MockStock | null; type: 'buy' | 'sell' }>({ isOpen: false, stock: null, type: 'buy' });
+  const [tradeModal, setTradeModal] = useState<{ isOpen: boolean; stock: StockData | null; type: 'buy' | 'sell' }>({ isOpen: false, stock: null, type: 'buy' });
 
-  const openTrade = (stock: MockStock, type: 'buy' | 'sell' = 'buy') => {
+  const openTrade = (stock: StockData, type: 'buy' | 'sell' = 'buy') => {
     setTradeModal({ isOpen: true, stock, type });
   };
 
   return (
     <>
       <PortfolioView
-        onSelectStock={(stock) => navigate(`/stock/${stock.symbol}`)}
+        onSelectStock={(stock) => navigate(`/stock/${stock.ticker}`)}
         onTrade={openTrade}
       />
       <TradeModal
