@@ -110,12 +110,40 @@ const RebalanceModal = ({
   const [allocations, setAllocations] = useState(
     holdings.map((h) => ({ symbol: h.ticker, target: h.allocation }))
   );
+  const [selectedIndex, setSelectedIndex] = useState(0);
 
   const totalAlloc = allocations.reduce((s, a) => s + a.target, 0);
 
-  const updateAlloc = (idx: number, val: number) => {
-    setAllocations((prev) => prev.map((a, i) => (i === idx ? { ...a, target: val } : a)));
+  const updateAlloc = (newVal: number) => {
+    setAllocations((prev) => {
+      const oldVal = prev[selectedIndex].target;
+      const delta = newVal - oldVal;
+      if (delta === 0) return prev;
+
+      const others = prev.map((a, i) => (i === selectedIndex ? 0 : a.target));
+      const othersSum = others.reduce((s, v) => s + v, 0);
+
+      let next = prev.map((a, i) => {
+        if (i === selectedIndex) return { ...a, target: newVal };
+        if (othersSum === 0) return { ...a, target: Math.round((100 - newVal) / (prev.length - 1)) };
+        const share = a.target / othersSum;
+        return { ...a, target: Math.max(0, Math.round(a.target - delta * share)) };
+      });
+
+      // Fix rounding to guarantee sum = 100
+      const sum = next.reduce((s, a) => s + a.target, 0);
+      if (sum !== 100) {
+        const largestOther = next.reduce((best, a, i) =>
+          i !== selectedIndex && a.target > (next[best]?.target ?? -1) ? i : best, selectedIndex === 0 ? 1 : 0);
+        next = next.map((a, i) => i === largestOther ? { ...a, target: a.target + (100 - sum) } : a);
+      }
+
+      return next;
+    });
   };
+
+  const pieData = allocations.map((a) => ({ name: a.symbol, value: a.target }));
+  const selected = allocations[selectedIndex];
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -124,18 +152,63 @@ const RebalanceModal = ({
           <DialogTitle className="font-brand flex items-center gap-2">
             <RefreshCw size={18} className="text-primary" /> Rebalance Portfolio
           </DialogTitle>
-          <DialogDescription>Adjust target allocations. Total must equal 100%.</DialogDescription>
+          <DialogDescription>Click a slice to select, then drag the slider to adjust.</DialogDescription>
         </DialogHeader>
-        <div className="space-y-5 py-2">
-          {allocations.map((a, i) => (
-            <div key={a.symbol} className="space-y-1.5">
-              <div className="flex justify-between text-sm">
-                <span className="font-bold text-foreground">{a.symbol}</span>
-                <span className="tabular-nums text-muted-foreground">{a.target}%</span>
-              </div>
-              <Slider value={[a.target]} max={100} step={1} onValueChange={([v]) => updateAlloc(i, v)} />
+        <div className="space-y-4 py-2">
+          {/* Interactive Pie Chart */}
+          <div className="h-[200px] w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <RePieChart>
+                <Pie
+                  data={pieData}
+                  dataKey="value"
+                  nameKey="name"
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={45}
+                  outerRadius={80}
+                  paddingAngle={3}
+                  onClick={(_, idx) => setSelectedIndex(idx)}
+                  cursor="pointer"
+                >
+                  {pieData.map((_, i) => (
+                    <Cell
+                      key={i}
+                      fill={PIE_COLORS[i % PIE_COLORS.length]}
+                      stroke={i === selectedIndex ? "hsl(var(--foreground))" : "transparent"}
+                      strokeWidth={i === selectedIndex ? 3 : 0}
+                      opacity={i === selectedIndex ? 1 : 0.7}
+                    />
+                  ))}
+                </Pie>
+                <Tooltip contentStyle={{ background: "hsl(220 15% 7%)", border: "1px solid hsl(220 12% 14%)", borderRadius: 8, fontSize: 12 }} />
+              </RePieChart>
+            </ResponsiveContainer>
+          </div>
+
+          {/* Clickable Legend */}
+          <div className="flex flex-wrap gap-3 justify-center">
+            {allocations.map((a, i) => (
+              <button
+                key={a.symbol}
+                onClick={() => setSelectedIndex(i)}
+                className={`flex items-center gap-1.5 text-xs px-2 py-1 rounded-md transition-colors ${i === selectedIndex ? "bg-secondary text-foreground font-bold" : "text-muted-foreground hover:text-foreground"}`}
+              >
+                <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: PIE_COLORS[i % PIE_COLORS.length] }} />
+                {a.symbol} {a.target}%
+              </button>
+            ))}
+          </div>
+
+          {/* Single Slider for selected stock */}
+          <div className="space-y-2 pt-2">
+            <div className="flex justify-between text-sm">
+              <span className="font-bold text-foreground">{selected.symbol}</span>
+              <span className="tabular-nums text-muted-foreground">{selected.target}%</span>
             </div>
-          ))}
+            <Slider value={[selected.target]} max={100} step={1} onValueChange={([v]) => updateAlloc(v)} />
+          </div>
+
           <div className={`text-sm text-right font-bold ${totalAlloc === 100 ? "text-primary" : "text-destructive"}`}>
             Total: {totalAlloc}%
           </div>
