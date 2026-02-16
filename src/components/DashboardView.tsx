@@ -309,7 +309,7 @@ const DashboardView = ({ setActiveTab, onSelectStock, onTrade }: DashboardViewPr
               </div>
 
               <div className="text-sm text-muted-foreground max-w-2xl leading-relaxed">
-                <span className="font-bold text-foreground underline underline-offset-2">Summary:</span>{' '}
+                <span className="font-bold text-primary underline underline-offset-2">Summary:</span>{' '}
                 {summaryLoading ? (
                   <span className="italic text-muted-foreground">Generating summary...</span>
                 ) : (
