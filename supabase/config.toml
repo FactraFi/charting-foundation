@@ -1,5 +1,8 @@
 project_id = "rtxscumviqccthvuwzxl"
 
+[functions.chat]
+verify_jwt = false
+
 [functions.stock-data]
 verify_jwt = false
 
