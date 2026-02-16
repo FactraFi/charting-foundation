@@ -17,3 +17,6 @@ verify_jwt = false
 
 [functions.stock-summary]
 verify_jwt = false
+
+[functions.why-score]
+verify_jwt = false
