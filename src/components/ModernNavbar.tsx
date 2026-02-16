@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import {
   LayoutDashboard, Search, Cpu, Workflow, Briefcase, Bell,
   Settings, Terminal, User, CreditCard, LogOut, Menu, X
@@ -6,20 +7,20 @@ import {
 import { MOCK_STOCKS, MOCK_NOTIFICATIONS } from "@/data/mock-data";
 
 interface NavbarProps {
-  activeTab: string;
-  setActiveTab: (tab: string) => void;
   onLogout?: () => void;
 }
 
-const menuItems = [
-  { id: 'dashboard', label: 'Markets', icon: LayoutDashboard },
-  { id: 'screener', label: 'Screener', icon: Search },
-  { id: 'ai', label: 'FactraAI', icon: Cpu },
-  { id: 'strategy', label: 'Strategy', icon: Workflow },
-  { id: 'portfolio', label: 'Portfolio', icon: Briefcase },
+const routes = [
+  { path: '/', label: 'Markets', icon: LayoutDashboard },
+  { path: '/screener', label: 'Screener', icon: Search },
+  { path: '/ai', label: 'FactraAI', icon: Cpu },
+  { path: '/strategy', label: 'Strategy', icon: Workflow },
+  { path: '/portfolio', label: 'Portfolio', icon: Briefcase },
 ];
 
-const ModernNavbar = ({ activeTab, setActiveTab, onLogout }: NavbarProps) => {
+const ModernNavbar = ({ onLogout }: NavbarProps) => {
+  const navigate = useNavigate();
+  const location = useLocation();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearchFocused, setIsSearchFocused] = useState(false);
@@ -49,7 +50,7 @@ const ModernNavbar = ({ activeTab, setActiveTab, onLogout }: NavbarProps) => {
         <div className="flex items-center justify-between h-16">
           {/* Logo & Desktop Nav */}
           <div className="flex items-center gap-10">
-            <div className="flex items-center gap-3 cursor-pointer group" onClick={() => setActiveTab('dashboard')}>
+            <div className="flex items-center gap-3 cursor-pointer group" onClick={() => navigate('/')}>
               <div className="w-8 h-8 rounded bg-foreground/10 flex items-center justify-center text-primary group-hover:shadow-[0_0_15px_hsl(var(--primary)/0.4)] transition-all duration-300">
                 <Terminal size={20} />
               </div>
@@ -58,20 +59,23 @@ const ModernNavbar = ({ activeTab, setActiveTab, onLogout }: NavbarProps) => {
 
             {/* Desktop Navigation */}
             <div className="hidden md:flex items-center space-x-1">
-              {menuItems.map((item) => (
-                <button
-                  key={item.id}
-                  onClick={() => setActiveTab(item.id)}
-                  className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 flex items-center gap-2
-                    ${activeTab === item.id
-                      ? 'text-foreground bg-foreground/[0.08]'
-                      : 'text-muted-foreground hover:text-foreground hover:bg-foreground/[0.02]'
-                    }`}
-                >
-                  <item.icon size={16} className={activeTab === item.id ? 'text-primary' : 'text-current'} />
-                  {item.label}
-                </button>
-              ))}
+              {routes.map((item) => {
+                const isActive = location.pathname === item.path;
+                return (
+                  <button
+                    key={item.path}
+                    onClick={() => navigate(item.path)}
+                    className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 flex items-center gap-2
+                      ${isActive
+                        ? 'text-foreground bg-foreground/[0.08]'
+                        : 'text-muted-foreground hover:text-foreground hover:bg-foreground/[0.02]'
+                      }`}
+                  >
+                    <item.icon size={16} className={isActive ? 'text-primary' : 'text-current'} />
+                    {item.label}
+                  </button>
+                );
+              })}
             </div>
           </div>
 
@@ -212,12 +216,12 @@ const ModernNavbar = ({ activeTab, setActiveTab, onLogout }: NavbarProps) => {
       {/* Mobile Menu */}
       {isMenuOpen && (
         <div className="md:hidden bg-card border-b border-border px-4 pt-2 pb-4 space-y-1 animate-fade-in-up">
-          {menuItems.map((item) => (
+          {routes.map((item) => (
             <button
-              key={item.id}
-              onClick={() => { setActiveTab(item.id); setIsMenuOpen(false); }}
+              key={item.path}
+              onClick={() => { navigate(item.path); setIsMenuOpen(false); }}
               className={`w-full flex items-center gap-3 px-3 py-3 rounded-lg text-sm font-medium transition-colors
-                ${activeTab === item.id ? 'bg-primary/10 text-primary' : 'text-muted-foreground'}`}
+                ${location.pathname === item.path ? 'bg-primary/10 text-primary' : 'text-muted-foreground'}`}
             >
               <item.icon size={18} />
               {item.label}
