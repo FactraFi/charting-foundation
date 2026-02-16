@@ -8,6 +8,7 @@ import FactraScoreGauge from "@/components/FactraScoreGauge";
 import { useStockData, useStockSearch } from "@/hooks/use-stock-data";
 import { useStockSummary } from "@/hooks/use-stock-summary";
 import type { StockData } from "@/lib/api";
+import CompanyLogo from "@/components/CompanyLogo";
 import { Skeleton } from "@/components/ui/skeleton";
 
 interface DashboardViewProps {
@@ -276,8 +277,8 @@ const DashboardView = ({ setActiveTab, onSelectStock, onTrade }: DashboardViewPr
             <div className="animate-fade-in-up">
               <div className="flex flex-col md:flex-row items-center md:items-end gap-4 mb-4">
                 <div className="flex items-center gap-4">
-                  <div className="w-16 h-16 rounded-full bg-primary flex items-center justify-center text-primary-foreground font-bold text-xl shadow-[0_0_20px_hsl(var(--primary)/0.4)]">
-                    {activeStock.ticker[0]}
+                  <div className="w-16 h-16 rounded-full bg-primary flex items-center justify-center text-primary-foreground font-bold text-xl shadow-[0_0_20px_hsl(var(--primary)/0.4)] overflow-hidden">
+                    <CompanyLogo ticker={activeStock.ticker} size={64} className="rounded-full object-cover" />
                   </div>
                   <h1
                     className="text-6xl md:text-7xl font-bold text-foreground tracking-tighter leading-none cursor-pointer hover:text-primary transition-colors"

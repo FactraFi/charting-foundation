@@ -7,6 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Briefcase, TrendingUp, TrendingDown, DollarSign, PieChart, RefreshCw, ArrowUpRight, ArrowDownRight } from "lucide-react";
 import { useStockData } from "@/hooks/use-stock-data";
 import type { StockData } from "@/lib/api";
+import CompanyLogo from "@/components/CompanyLogo";
 import {
   PieChart as RePieChart, Pie, Cell, ResponsiveContainer,
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip
@@ -67,7 +68,7 @@ const HoldingRow = ({
     <TableRow className="cursor-pointer" onClick={() => stock && onSelectStock(stock)}>
       <TableCell>
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-secondary flex items-center justify-center text-xs font-bold text-primary">{holding.ticker[0]}</div>
+          <div className="w-8 h-8 rounded-lg bg-secondary flex items-center justify-center text-xs font-bold text-primary overflow-hidden"><CompanyLogo ticker={holding.ticker} size={32} className="rounded-lg object-cover" /></div>
           <div>
             <div className="font-bold text-foreground text-sm">{holding.ticker}</div>
             <div className="text-[10px] text-muted-foreground">{stock?.name ?? holding.ticker}</div>

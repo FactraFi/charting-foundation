@@ -5,6 +5,7 @@ import {
   Settings, Terminal, User, CreditCard, LogOut, Menu, X
 } from "lucide-react";
 import { useStockSearch } from "@/hooks/use-stock-data";
+import CompanyLogo from "@/components/CompanyLogo";
 
 interface NavbarProps {
   onLogout?: () => void;
@@ -111,7 +112,7 @@ const ModernNavbar = ({ onLogout }: NavbarProps) => {
                           }}
                         >
                           <div className="flex items-center gap-3">
-                            <div className="w-6 h-6 rounded bg-secondary flex items-center justify-center text-[10px] font-bold text-foreground group-hover:bg-primary group-hover:text-primary-foreground transition-colors">{result.ticker[0]}</div>
+                            <div className="w-6 h-6 rounded bg-secondary flex items-center justify-center text-[10px] font-bold text-foreground group-hover:bg-primary group-hover:text-primary-foreground transition-colors overflow-hidden"><CompanyLogo ticker={result.ticker} size={24} className="rounded object-cover" /></div>
                             <div>
                               <div className="text-sm font-bold text-foreground">{result.ticker}</div>
                               <div className="text-[10px] text-muted-foreground">{result.name}</div>

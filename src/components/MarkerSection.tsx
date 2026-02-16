@@ -4,6 +4,7 @@ import {
   TrendingUp, MessageSquare, BarChart3
 } from "lucide-react";
 import type { StockData } from "@/lib/api";
+import CompanyLogo from "@/components/CompanyLogo";
 import { useStockSummary } from "@/hooks/use-stock-summary";
 
 interface MarkerSectionProps {
@@ -78,8 +79,8 @@ const MarkerSection = ({ stock, onBack }: MarkerSectionProps) => {
           <button onClick={onBack} className="text-muted-foreground hover:text-foreground transition-colors mt-2">
             <ChevronLeft size={24} />
           </button>
-          <div className="w-16 h-16 rounded-full bg-secondary flex items-center justify-center text-lg font-bold text-foreground border border-border shadow-md">
-            {stock.ticker[0]}
+          <div className="w-16 h-16 rounded-full bg-secondary flex items-center justify-center text-lg font-bold text-foreground border border-border shadow-md overflow-hidden">
+            <CompanyLogo ticker={stock.ticker} size={64} className="rounded-full object-cover" />
           </div>
           <div className="flex-1">
             <div className="flex items-center gap-3 mb-2">
