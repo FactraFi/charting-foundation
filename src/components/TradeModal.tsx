@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
-import { X, ArrowUpRight, ArrowDownRight, CheckCircle, Info, FileText } from "lucide-react";
+import { X, ArrowUpRight, ArrowDownRight, CheckCircle, Info, FileText, AlertCircle } from "lucide-react";
 import type { StockData } from "@/lib/api";
+import { useExecuteTrade } from "@/hooks/use-portfolio";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface TradeModalProps {
   isOpen: boolean;
@@ -10,13 +12,16 @@ interface TradeModalProps {
 }
 
 const TradeModal = ({ isOpen, onClose, stock, initialType = 'buy' }: TradeModalProps) => {
+  const { profile } = useAuth();
+  const executeTrade = useExecuteTrade();
   const [tradeType, setTradeType] = useState<'buy' | 'sell'>(initialType);
   const [orderType, setOrderType] = useState<'market' | 'limit'>('market');
-  const [environment, setEnvironment] = useState<'paper' | 'real'>('paper');
   const [quantity, setQuantity] = useState(1);
   const [limitPrice, setLimitPrice] = useState(0);
   const [orderPlaced, setOrderPlaced] = useState(false);
   const [showTooltip, setShowTooltip] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState('');
 
   const currentPrice = stock?.current_price || 0;
   const symbol = stock?.ticker || 'UNKNOWN';
@@ -30,26 +35,37 @@ const TradeModal = ({ isOpen, onClose, stock, initialType = 'buy' }: TradeModalP
     setTradeType(initialType);
     setQuantity(1);
     setOrderPlaced(false);
-    setEnvironment('paper');
     setOrderType('market');
     setShowTooltip(false);
+    setError('');
   }, [initialType, isOpen]);
 
   const effectivePrice = orderType === 'limit' ? limitPrice : currentPrice;
   const estimatedTotal = (quantity * effectivePrice).toFixed(2);
   const isBuy = tradeType === 'buy';
 
-  const handleTrade = (e: React.FormEvent) => {
+  const handleTrade = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (environment === 'real') return;
+    setError('');
+    setSubmitting(true);
 
-    setTimeout(() => {
+    try {
+      await executeTrade({
+        ticker: symbol,
+        shares: quantity,
+        price: effectivePrice,
+        type: tradeType,
+      });
       setOrderPlaced(true);
       setTimeout(() => {
         setOrderPlaced(false);
         onClose();
       }, 2000);
-    }, 800);
+    } catch (err: any) {
+      setError(err.message || 'Trade failed');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   if (!isOpen || !stock) return null;
@@ -70,16 +86,12 @@ const TradeModal = ({ isOpen, onClose, stock, initialType = 'buy' }: TradeModalP
               </div>
 
               <div className="flex bg-secondary p-1 rounded-xl">
-                <button
-                  onClick={() => setTradeType('buy')}
-                  className={`flex-1 py-2.5 rounded-lg text-sm font-bold transition-all duration-200 ${isBuy ? 'bg-primary text-primary-foreground shadow-lg' : 'text-muted-foreground hover:text-foreground'}`}
-                >
+                <button onClick={() => setTradeType('buy')}
+                  className={`flex-1 py-2.5 rounded-lg text-sm font-bold transition-all duration-200 ${isBuy ? 'bg-primary text-primary-foreground shadow-lg' : 'text-muted-foreground hover:text-foreground'}`}>
                   BUY
                 </button>
-                <button
-                  onClick={() => setTradeType('sell')}
-                  className={`flex-1 py-2.5 rounded-lg text-sm font-bold transition-all duration-200 ${!isBuy ? 'bg-destructive text-foreground shadow-lg' : 'text-muted-foreground hover:text-foreground'}`}
-                >
+                <button onClick={() => setTradeType('sell')}
+                  className={`flex-1 py-2.5 rounded-lg text-sm font-bold transition-all duration-200 ${!isBuy ? 'bg-destructive text-foreground shadow-lg' : 'text-muted-foreground hover:text-foreground'}`}>
                   SELL
                 </button>
               </div>
@@ -148,35 +160,38 @@ const TradeModal = ({ isOpen, onClose, stock, initialType = 'buy' }: TradeModalP
                 <span className={`font-mono text-xl font-bold ${isBuy ? 'text-primary' : 'text-destructive'}`}>${estimatedTotal}</span>
               </div>
 
+              {isBuy && profile && (
+                <div className="text-xs text-muted-foreground text-right">
+                  Available: ${profile.cash_balance.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                </div>
+              )}
+
+              {error && (
+                <div className="text-destructive text-sm flex items-center gap-2 bg-destructive/10 p-3 rounded-lg border border-destructive/20">
+                  <AlertCircle size={16} /> {error}
+                </div>
+              )}
+
               <div className="h-px w-full bg-border" />
 
-              <div className="space-y-4">
-                <div className="flex justify-between items-center">
-                  <span className="text-muted-foreground text-sm">Market Status</span>
-                  <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-full bg-primary/10 border border-primary/20 text-primary text-[10px] font-bold uppercase tracking-wide">
-                    <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
-                    MARKET OPEN
-                  </span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-muted-foreground text-sm">Environment</span>
-                  <div className="flex items-center bg-secondary rounded-full p-0.5 border border-border">
-                    <button onClick={() => setEnvironment('paper')} className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase flex items-center gap-1.5 transition-all ${environment === 'paper' ? 'bg-primary text-primary-foreground shadow-md' : 'text-muted-foreground'}`}>
-                      <FileText size={10} /> Paper
-                    </button>
-                    <div className="px-3 py-1 rounded-full text-[10px] font-bold uppercase flex items-center gap-1.5 text-muted-foreground/40 cursor-not-allowed opacity-60">
-                      Real <span className="bg-muted text-[8px] text-foreground px-1 rounded ml-1">SOON</span>
-                    </div>
-                  </div>
-                </div>
+              <div className="flex justify-between items-center">
+                <span className="text-muted-foreground text-sm">Environment</span>
+                <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-full bg-primary/10 border border-primary/20 text-primary text-[10px] font-bold uppercase tracking-wide">
+                  <FileText size={10} /> Paper Trading
+                </span>
               </div>
             </div>
 
             <div className="p-6 pt-0 mt-auto flex gap-3">
               <button onClick={onClose} className="flex-1 py-3.5 rounded-xl text-sm font-bold text-muted-foreground border border-border hover:bg-secondary hover:text-foreground transition-colors">Cancel</button>
-              <button onClick={handleTrade} className={`flex-[2] py-3.5 rounded-xl text-sm font-bold transition-all shadow-lg flex items-center justify-center gap-2 ${isBuy ? 'bg-primary text-primary-foreground hover:bg-primary/90' : 'bg-destructive text-foreground hover:bg-destructive/90'}`}>
-                {isBuy ? <ArrowUpRight size={18} /> : <ArrowDownRight size={18} />}
-                Confirm {isBuy ? 'Buy' : 'Sell'}
+              <button onClick={handleTrade} disabled={submitting}
+                className={`flex-[2] py-3.5 rounded-xl text-sm font-bold transition-all shadow-lg flex items-center justify-center gap-2 disabled:opacity-50 ${isBuy ? 'bg-primary text-primary-foreground hover:bg-primary/90' : 'bg-destructive text-foreground hover:bg-destructive/90'}`}>
+                {submitting ? 'Processing...' : (
+                  <>
+                    {isBuy ? <ArrowUpRight size={18} /> : <ArrowDownRight size={18} />}
+                    Confirm {isBuy ? 'Buy' : 'Sell'}
+                  </>
+                )}
               </button>
             </div>
           </div>
@@ -196,7 +211,7 @@ const TradeModal = ({ isOpen, onClose, stock, initialType = 'buy' }: TradeModalP
               </div>
               <div className="flex justify-between text-sm font-bold text-foreground">
                 <span>${estimatedTotal}</span>
-                <span className="uppercase">{environment} Trading</span>
+                <span className="uppercase">Paper Trading</span>
               </div>
             </div>
             <button onClick={onClose} className="text-primary font-bold text-sm hover:underline">Close Window</button>

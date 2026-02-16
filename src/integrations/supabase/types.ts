@@ -14,6 +14,60 @@ export type Database = {
   }
   public: {
     Tables: {
+      holdings: {
+        Row: {
+          avg_cost: number
+          created_at: string
+          id: string
+          shares: number
+          ticker: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          avg_cost?: number
+          created_at?: string
+          id?: string
+          shares?: number
+          ticker: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          avg_cost?: number
+          created_at?: string
+          id?: string
+          shares?: number
+          ticker?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          cash_balance: number
+          created_at: string
+          email: string | null
+          full_name: string | null
+          id: string
+        }
+        Insert: {
+          cash_balance?: number
+          created_at?: string
+          email?: string | null
+          full_name?: string | null
+          id: string
+        }
+        Update: {
+          cash_balance?: number
+          created_at?: string
+          email?: string | null
+          full_name?: string | null
+          id?: string
+        }
+        Relationships: []
+      }
       stock_scores: {
         Row: {
           fundamentals: number | null

@@ -6,7 +6,7 @@ import {
 } from "lucide-react";
 import { useStockSearch } from "@/hooks/use-stock-data";
 import CompanyLogo from "@/components/CompanyLogo";
-
+import { useAuth } from "@/contexts/AuthContext";
 interface NavbarProps {
   onLogout?: () => void;
 }
@@ -24,6 +24,9 @@ const NOTIFICATIONS = [
 ];
 
 const ModernNavbar = ({ onLogout }: NavbarProps) => {
+  const { profile } = useAuth();
+  const displayName = profile?.full_name || profile?.email || "User";
+  const initials = displayName.split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase();
   const navigate = useNavigate();
   const location = useLocation();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -169,19 +172,19 @@ const ModernNavbar = ({ onLogout }: NavbarProps) => {
             <div className="relative hidden md:flex items-center gap-3" ref={profileRef}>
               <button className="flex items-center gap-3 group text-left" onClick={() => setShowProfileMenu(!showProfileMenu)}>
                 <div className="text-right hidden xl:block">
-                  <div className="text-sm font-medium text-foreground group-hover:text-primary transition-colors">John Doe</div>
+                  <div className="text-sm font-medium text-foreground group-hover:text-primary transition-colors">{displayName}</div>
                   <div className="text-[10px] text-primary">PRO PLAN</div>
                 </div>
                 <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-primary to-info p-[1px] cursor-pointer hover:scale-105 transition-transform duration-200">
-                  <div className="w-full h-full rounded-full bg-background flex items-center justify-center text-xs font-bold text-foreground">JD</div>
+                  <div className="w-full h-full rounded-full bg-background flex items-center justify-center text-xs font-bold text-foreground">{initials}</div>
                 </div>
               </button>
 
               {showProfileMenu && (
                 <div className="absolute top-full right-0 mt-3 w-56 bg-card border border-border rounded-xl shadow-2xl overflow-hidden z-50 animate-fade-in-up">
                   <div className="p-4 border-b border-border">
-                    <p className="text-sm font-bold text-foreground">John Doe</p>
-                    <p className="text-xs text-muted-foreground">john.doe@example.com</p>
+                    <p className="text-sm font-bold text-foreground">{displayName}</p>
+                    <p className="text-xs text-muted-foreground">{profile?.email ?? ""}</p>
                   </div>
                   <div className="py-2">
                     <button className="w-full text-left px-4 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-foreground/5 flex items-center gap-2"><User size={16} /> Account Profile</button>

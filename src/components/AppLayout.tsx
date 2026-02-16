@@ -1,15 +1,17 @@
-import { useState } from "react";
-import { Outlet, useNavigate } from "react-router-dom";
+import { Outlet, useNavigate, Navigate } from "react-router-dom";
 import ModernNavbar from "@/components/ModernNavbar";
+import { useAuth } from "@/contexts/AuthContext";
 
 const AppLayout = () => {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const { session, loading, signOut } = useAuth();
   const navigate = useNavigate();
 
-  // Auth is handled inline for now — skip auth gate for routing phase
-  const handleLogout = () => {
-    setIsAuthenticated(false);
-    navigate("/");
+  if (loading) return null;
+  if (!session) return <Navigate to="/login" replace />;
+
+  const handleLogout = async () => {
+    await signOut();
+    navigate("/login");
   };
 
   return (
