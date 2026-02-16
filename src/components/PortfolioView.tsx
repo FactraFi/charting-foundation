@@ -10,7 +10,7 @@ import type { StockData } from "@/lib/api";
 import {
   PieChart as RePieChart, Pie, Cell, ResponsiveContainer,
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip
-} from "@/recharts-adapter";
+} from "recharts";
 
 // ---------- Portfolio holdings (paper trading) ----------
 
