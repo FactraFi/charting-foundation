@@ -1,39 +1,61 @@
 
 
-# UI Polish: Three Small Fixes
+# Rebalance Modal: Interactive Pie Chart
 
-## 1. Rename "Confidence Score" to "FactraFi Score" on the hero gauge
+## Overview
 
-**File:** `src/components/FactraScoreGauge.tsx` (line 126)
+Replace the slider-based allocation UI in the Rebalance Portfolio modal with an interactive pie chart. Users will click on a pie slice to select it, then use a single slider (or +/- buttons) to adjust that slice's allocation. The pie chart visually updates in real-time, and the total must still equal 100%.
 
-Currently the large variant shows "Confidence Score" while the medium variant shows "FactraFi Score". Change both to always show **"FactraFi Score"**.
+## Design
 
-Replace the ternary `{isMedium ? "FactraFi Score" : "Confidence Score"}` with just `"FactraFi Score"`.
+```text
++--------------------------------------------+
+|  Rebalance Portfolio                    X   |
+|  Adjust target allocations. Total = 100%.   |
+|                                             |
+|         [Interactive Pie Chart]             |
+|          Click a slice to select            |
+|                                             |
+|  Legend (clickable):                        |
+|   * NVDA  32%    * AMD   22%               |
+|   * MSFT  22%    * AAPL  15%               |
+|   * PLTR   9%                              |
+|                                             |
+|  Selected: NVDA                             |
+|  [---- slider ----]  32%                    |
+|                                             |
+|  Total: 100%                                |
+|  [Cancel]            [Apply Rebalance]      |
++--------------------------------------------+
+```
 
-## 2. Match the Price chart height to V-Score History
+- The pie chart uses the same `PIE_COLORS` already defined in `PortfolioView.tsx`
+- Clicking a slice or legend item selects that stock
+- A single slider below adjusts the selected stock's allocation
+- When adjusting one slice, the others proportionally redistribute to keep total at 100%
+- The "Total: 100%" indicator and Apply button use the same validation logic as today
 
-**File:** `src/components/StockDetailView.tsx` (line 208)
+## Technical Changes
 
-The Price chart container has a fixed `h-[400px]` but the V-Score History panel has no fixed height (it sizes naturally from its `h-[320px]` inner chart + padding + legend, totaling roughly 460px+). The fix is to remove the fixed height from the Price chart and let it stretch to match the V-Score History height via the grid.
+### File: `src/components/PortfolioView.tsx`
 
-- Line 208: Change `h-[400px]` to `min-h-[400px]` and add `h-full` so the grid stretches both columns equally. The resulting class becomes: `bg-background border border-border rounded-xl p-6 min-h-[400px] h-full relative overflow-hidden flex flex-col group`.
+**Modify the `RebalanceModal` component (lines ~97-140):**
 
-## 3. Make "Summary:" label green
+1. Add `selectedIndex` state (default 0) to track which slice is selected
+2. Replace the list of 5 sliders with:
+   - A Recharts `PieChart` with `Pie` using `onClick` on each `Cell` to set `selectedIndex`
+   - A color-coded legend row (clickable) showing ticker + percentage
+   - A single `Slider` for the selected stock's allocation
+3. Update the `updateAlloc` function: when the selected slice changes by delta, distribute the inverse delta proportionally across the other slices (clamped to 0-100), ensuring the total stays at 100%
+4. Keep the existing Cancel / Apply Rebalance buttons and total validation
 
-**File:** `src/components/DashboardView.tsx` (line 312)
+**No new files or dependencies needed** -- Recharts `PieChart`, `Pie`, `Cell`, `ResponsiveContainer` are already imported in this file, and `Slider` is already imported from the UI library.
 
-Change the "Summary:" span from `text-foreground` to `text-primary` so it uses the brand green color.
+### Proportional Redistribution Logic
 
-Replace: `className="font-bold text-foreground underline underline-offset-2"`
-With: `className="font-bold text-primary underline underline-offset-2"`
-
-## Files to Modify
-
-| File | Line(s) | Change |
-|------|---------|--------|
-| `src/components/FactraScoreGauge.tsx` | 126 | Replace ternary with `"FactraFi Score"` |
-| `src/components/StockDetailView.tsx` | 208 | Change `h-[400px]` to `min-h-[400px] h-full` |
-| `src/components/DashboardView.tsx` | 312 | Change `text-foreground` to `text-primary` |
-
-All three are single-line CSS/text changes with no logic impact.
+When the user drags the slider for the selected stock from `oldVal` to `newVal`:
+- `delta = newVal - oldVal`
+- The remaining stocks share `-delta` proportionally based on their current values
+- Each is clamped to `[0, 100]`
+- Final adjustment applied to the largest remaining stock to guarantee sum = 100
 
