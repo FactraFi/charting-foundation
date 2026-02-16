@@ -14,7 +14,84 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      stock_scores: {
+        Row: {
+          fundamentals: number | null
+          industry: string | null
+          momentum: number | null
+          name: string | null
+          rank_ic: number | null
+          risk: number | null
+          sector: string | null
+          sentiment: number | null
+          style: string | null
+          ticker: string
+          updated_at: string
+          v_score: number | null
+          weights: string | null
+          why_explanation: string | null
+        }
+        Insert: {
+          fundamentals?: number | null
+          industry?: string | null
+          momentum?: number | null
+          name?: string | null
+          rank_ic?: number | null
+          risk?: number | null
+          sector?: string | null
+          sentiment?: number | null
+          style?: string | null
+          ticker: string
+          updated_at?: string
+          v_score?: number | null
+          weights?: string | null
+          why_explanation?: string | null
+        }
+        Update: {
+          fundamentals?: number | null
+          industry?: string | null
+          momentum?: number | null
+          name?: string | null
+          rank_ic?: number | null
+          risk?: number | null
+          sector?: string | null
+          sentiment?: number | null
+          style?: string | null
+          ticker?: string
+          updated_at?: string
+          v_score?: number | null
+          weights?: string | null
+          why_explanation?: string | null
+        }
+        Relationships: []
+      }
+      stock_universe: {
+        Row: {
+          added_at: string
+          industry: string | null
+          market_cap: string | null
+          name: string | null
+          sector: string | null
+          ticker: string
+        }
+        Insert: {
+          added_at?: string
+          industry?: string | null
+          market_cap?: string | null
+          name?: string | null
+          sector?: string | null
+          ticker: string
+        }
+        Update: {
+          added_at?: string
+          industry?: string | null
+          market_cap?: string | null
+          name?: string | null
+          sector?: string | null
+          ticker?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

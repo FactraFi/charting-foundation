@@ -1,99 +1,109 @@
 import { useState } from "react";
 import { ArrowRight, DollarSign, Star, Layers, Search } from "lucide-react";
 import FactraScoreGauge from "@/components/FactraScoreGauge";
-import { MOCK_STOCKS } from "@/data/mock-data";
-import type { MockStock } from "@/data/mock-data";
+import { useStockUniverse, useStockSearch, useStockData } from "@/hooks/use-stock-data";
+import type { StockData, StockScoreRow } from "@/lib/api";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface ScreenerViewProps {
-  onSelectStock: (stock: MockStock) => void;
-  onTrade: (stock: MockStock, type: 'buy' | 'sell') => void;
+  onSelectStock: (stock: StockData) => void;
+  onTrade: (stock: StockData, type: 'buy' | 'sell') => void;
 }
 
-/* ── Screener Card ──────────────────────────────── */
+/* ── Mini stock data for screener cards ─────────────── */
+interface ScreenerStock {
+  ticker: string;
+  name: string;
+  sector: string;
+  industry: string;
+  v_score: number | null;
+  signal: string;
+}
+
+/* ── Screener Card (simplified — fetches own price) ── */
 const ScreenerCard = ({
   stock,
   onSelect,
   onPlaceOrder,
 }: {
-  stock: MockStock;
-  onSelect: (stock: MockStock) => void;
-  onPlaceOrder: (stock: MockStock) => void;
+  stock: ScreenerStock;
+  onSelect: (ticker: string) => void;
+  onPlaceOrder: (ticker: string) => void;
 }) => {
-  const isBullish = stock.technical === 'Bullish' || stock.technical === 'Strong Buy';
+  const { data: liveData } = useStockData(stock.ticker);
 
   return (
     <div className="bg-background border border-border rounded-2xl p-6 hover:border-primary/30 transition-all group hover:scale-[1.01] duration-300 flex flex-col h-full relative overflow-hidden">
-      {/* Hover gradient */}
       <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
 
       {/* Header */}
       <div className="flex justify-between items-start mb-6 relative z-10">
         <div className="flex items-center gap-4">
           <div className="w-12 h-12 rounded-full bg-secondary flex items-center justify-center text-sm font-bold text-foreground border border-border shadow-md group-hover:border-primary/50 transition-colors">
-            {stock.symbol[0]}
+            {stock.ticker[0]}
           </div>
           <div>
-            <div className="text-xl font-bold text-foreground tracking-tight">{stock.symbol}</div>
-            <div className="text-xs text-muted-foreground font-medium uppercase tracking-wide">{stock.name}</div>
+            <div className="text-xl font-bold text-foreground tracking-tight">{stock.ticker}</div>
+            <div className="text-xs text-muted-foreground font-medium uppercase tracking-wide">{stock.name || stock.ticker}</div>
           </div>
         </div>
-        <FactraScoreGauge score={stock.score} minimal={true} />
+        <FactraScoreGauge score={stock.v_score ?? 0} minimal={true} />
       </div>
 
       {/* Price */}
       <div className="flex items-baseline gap-3 mb-6 relative z-10">
-        <span className="text-3xl font-bold text-foreground tracking-tight">${stock.price.toFixed(2)}</span>
-        <span className={`text-sm font-bold ${stock.change >= 0 ? 'text-primary' : 'text-destructive'}`}>
-          {stock.change > 0 ? '+' : ''}{stock.change}%
-        </span>
+        {liveData ? (
+          <>
+            <span className="text-3xl font-bold text-foreground tracking-tight">${liveData.current_price.toFixed(2)}</span>
+            <span className={`text-sm font-bold ${liveData.day_change_pct >= 0 ? 'text-primary' : 'text-destructive'}`}>
+              {liveData.day_change_pct > 0 ? '+' : ''}{liveData.day_change_pct}%
+            </span>
+          </>
+        ) : (
+          <Skeleton className="h-8 w-32" />
+        )}
       </div>
 
       {/* Metrics Grid */}
       <div className="grid grid-cols-2 gap-y-5 gap-x-8 mb-6 text-sm flex-grow relative z-10">
         <div className="flex flex-col">
           <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider mb-1">Sector</span>
-          <span className="text-muted-foreground font-medium truncate">{stock.sector}</span>
+          <span className="text-muted-foreground font-medium truncate">{stock.sector || 'N/A'}</span>
         </div>
         <div className="flex flex-col">
           <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider mb-1">Industry</span>
-          <span className="text-foreground font-bold uppercase truncate">{stock.industry}</span>
+          <span className="text-foreground font-bold uppercase truncate">{stock.industry || 'N/A'}</span>
         </div>
         <div className="flex flex-col">
           <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider mb-1">Market Cap</span>
-          <span className="text-foreground font-bold">{stock.marketCap}</span>
+          <span className="text-foreground font-bold">{liveData?.market_cap ?? '—'}</span>
         </div>
         <div className="flex flex-col">
           <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider mb-1">P/E Ratio</span>
-          <span className="text-foreground font-bold">{stock.peRatio ? stock.peRatio.toFixed(1) : 'N/A'}</span>
+          <span className="text-foreground font-bold">{liveData?.pe_ratio?.toFixed(1) ?? 'N/A'}</span>
         </div>
         <div className="flex flex-col">
           <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider mb-1">Signal</span>
-          <span className={`font-bold ${stock.score >= 60 ? 'text-primary' : stock.score >= 40 ? 'text-yellow-500' : 'text-destructive'}`}>{stock.signal}</span>
+          <span className={`font-bold ${(stock.v_score ?? 0) >= 60 ? 'text-primary' : (stock.v_score ?? 0) >= 40 ? 'text-yellow-500' : 'text-destructive'}`}>
+            {liveData?.signal ?? stock.signal}
+          </span>
         </div>
         <div className="flex flex-col">
-          <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider mb-1">Momentum</span>
-          <span className={`font-bold ${isBullish ? 'text-primary' : 'text-destructive'}`}>{stock.technical}</span>
-        </div>
-        <div className="flex flex-col">
-          <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider mb-1">Analyst</span>
-          <div className="flex text-primary text-[10px]">
-            {[...Array(5)].map((_, i) => (
-              <Star key={i} size={10} fill={i < stock.analystRating ? "currentColor" : "none"} className={i < stock.analystRating ? "text-primary" : "text-muted-foreground/30"} />
-            ))}
-          </div>
+          <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider mb-1">V-Score</span>
+          <span className="text-primary font-bold">{stock.v_score ?? 'Pending'}</span>
         </div>
       </div>
 
       {/* Footer */}
       <div className="flex gap-2 relative z-10">
         <button
-          onClick={() => onSelect(stock)}
+          onClick={() => onSelect(stock.ticker)}
           className="flex-1 py-3 rounded-xl border border-border hover:border-primary hover:bg-primary/5 text-muted-foreground hover:text-primary font-bold text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2"
         >
           <ArrowRight size={14} /> View Details
         </button>
         <button
-          onClick={() => onPlaceOrder(stock)}
+          onClick={() => onPlaceOrder(stock.ticker)}
           className="flex-1 py-3 rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 font-bold text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 shadow-[0_0_15px_hsl(var(--primary)/0.2)]"
         >
           <DollarSign size={14} /> Place Order
@@ -104,7 +114,7 @@ const ScreenerCard = ({
 };
 
 /* ── Industry Card ──────────────────────────────── */
-const IndustryCard = ({ industry, data }: { industry: string; data: MockStock[] }) => {
+const IndustryCard = ({ industry, data }: { industry: string; data: ScreenerStock[] }) => {
   const getDescription = (name: string) => {
     if (name.includes('Tech') || name.includes('Semi')) return 'Software, hardware, semiconductors, and IT services companies.';
     if (name.includes('Auto') || name.includes('Cyclical')) return 'Retail, automotive, travel, and discretionary spending sectors.';
@@ -113,7 +123,8 @@ const IndustryCard = ({ industry, data }: { industry: string; data: MockStock[] 
     return 'Companies operating within this specific market sector.';
   };
 
-  const avgScore = Math.round(data.reduce((acc, s) => acc + s.score, 0) / data.length);
+  const scores = data.filter(s => s.v_score !== null).map(s => s.v_score!);
+  const avgScore = scores.length > 0 ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length) : 0;
   const scoreColor = avgScore >= 70 ? 'text-primary' : avgScore >= 50 ? 'text-yellow-500' : 'text-destructive';
 
   return (
@@ -129,14 +140,14 @@ const IndustryCard = ({ industry, data }: { industry: string; data: MockStock[] 
       <div className="mt-6">
         <div className="flex items-center gap-2 mb-4">
           <span className="text-xs text-muted-foreground font-bold uppercase tracking-wide">Avg Score:</span>
-          <span className={`text-lg font-bold ${scoreColor}`}>{avgScore}</span>
+          <span className={`text-lg font-bold ${scoreColor}`}>{avgScore || 'N/A'}</span>
         </div>
 
         <div className="flex justify-between items-center border-t border-border pt-4">
           <div className="flex -space-x-2">
             {data.slice(0, 4).map((stock, i) => (
               <div key={i} className="w-8 h-8 rounded-full bg-secondary border-2 border-background flex items-center justify-center text-[10px] font-bold text-foreground" style={{ zIndex: 10 - i }}>
-                {stock.symbol[0]}
+                {stock.ticker[0]}
               </div>
             ))}
           </div>
@@ -152,45 +163,79 @@ const ScreenerView = ({ onSelectStock, onTrade }: ScreenerViewProps) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState('All Stocks');
 
-  const filteredStocks = MOCK_STOCKS.filter(stock =>
-    stock.symbol.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    stock.name.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const { data: universe, isLoading: universeLoading } = useStockUniverse();
+  const { data: searchResults } = useStockSearch(searchQuery, searchQuery.length >= 1);
+
+  // Convert universe to ScreenerStock format
+  const screenerStocks: ScreenerStock[] = (universe || []).map((s) => ({
+    ticker: s.ticker,
+    name: s.name || s.ticker,
+    sector: s.sector || '',
+    industry: s.industry || '',
+    v_score: s.v_score,
+    signal: s.v_score ? (s.v_score >= 85 ? 'Strong Buy' : s.v_score >= 70 ? 'Buy' : s.v_score >= 50 ? 'Hold' : 'Sell') : 'Pending',
+  }));
+
+  // If searching, show search results
+  const displayStocks = searchQuery.length >= 1 && searchResults
+    ? searchResults.map((r) => ({
+        ticker: r.ticker,
+        name: r.name,
+        sector: r.sector,
+        industry: r.industry,
+        v_score: screenerStocks.find(s => s.ticker === r.ticker)?.v_score ?? null,
+        signal: 'Pending',
+      }))
+    : screenerStocks;
 
   const getGroupedData = (key: 'industry' | 'sector') => {
-    const groups: Record<string, MockStock[]> = {};
-    filteredStocks.forEach(stock => {
-      const groupName = stock[key];
+    const groups: Record<string, ScreenerStock[]> = {};
+    displayStocks.forEach(stock => {
+      const groupName = stock[key] || 'Other';
       if (!groups[groupName]) groups[groupName] = [];
       groups[groupName].push(stock);
     });
     return groups;
   };
 
-  const industryGroups = getGroupedData('industry');
-  const sectorGroups = getGroupedData('sector');
+  const handleSelectStock = (ticker: string) => {
+    // Navigate to stock detail — we pass a minimal StockData for navigation
+    onSelectStock({ ticker, name: ticker, sector: '', industry: '', current_price: 0, day_change_pct: 0, volume: 0, previous_close: 0, market_cap: '', pe_ratio: null, forward_pe: null, debt_to_equity: null, roe: null, roce: null, dividend_yield: null, profit_margin: null, operating_margin: null, revenue_growth: null, eps_growth: null, beta: null, analyst_target: null, analyst_rating: null, year_change: null, v_score: null, fundamentals: null, momentum: null, risk: null, sentiment: null, signal: '', has_scores: false, why_explanation: null });
+  };
+
+  const handlePlaceOrder = (ticker: string) => {
+    onTrade({ ticker, name: ticker, sector: '', industry: '', current_price: 0, day_change_pct: 0, volume: 0, previous_close: 0, market_cap: '', pe_ratio: null, forward_pe: null, debt_to_equity: null, roe: null, roce: null, dividend_yield: null, profit_margin: null, operating_margin: null, revenue_growth: null, eps_growth: null, beta: null, analyst_target: null, analyst_rating: null, year_change: null, v_score: null, fundamentals: null, momentum: null, risk: null, sentiment: null, signal: '', has_scores: false, why_explanation: null }, 'buy');
+  };
 
   const renderContent = () => {
+    if (universeLoading) {
+      return (
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+          {[...Array(6)].map((_, i) => <Skeleton key={i} className="h-80 rounded-2xl" />)}
+        </div>
+      );
+    }
+
     if (activeTab === 'All Stocks') {
       return (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-          {filteredStocks.map((stock) => (
+          {displayStocks.map((stock) => (
             <ScreenerCard
-              key={stock.symbol}
+              key={stock.ticker}
               stock={stock}
-              onSelect={onSelectStock}
-              onPlaceOrder={(s) => onTrade(s, 'buy')}
+              onSelect={handleSelectStock}
+              onPlaceOrder={handlePlaceOrder}
             />
           ))}
-          {filteredStocks.length === 0 && (
+          {displayStocks.length === 0 && (
             <div className="col-span-full text-center py-20 text-muted-foreground">
-              No stocks found matching "{searchQuery}"
+              {searchQuery ? `No stocks found matching "${searchQuery}"` : 'No scored stocks yet. Your Railway engine needs to calculate scores first.'}
             </div>
           )}
         </div>
       );
     } else {
-      const groups = activeTab === 'Industry' ? industryGroups : sectorGroups;
+      const groups = activeTab === 'Industry' ? getGroupedData('industry') : getGroupedData('sector');
       return (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
           {Object.keys(groups).map((groupName) => (
@@ -198,7 +243,7 @@ const ScreenerView = ({ onSelectStock, onTrade }: ScreenerViewProps) => {
           ))}
           {Object.keys(groups).length === 0 && (
             <div className="col-span-full text-center py-20 text-muted-foreground">
-              No groups found matching "{searchQuery}"
+              No groups found
             </div>
           )}
         </div>
@@ -214,7 +259,7 @@ const ScreenerView = ({ onSelectStock, onTrade }: ScreenerViewProps) => {
           <Search size={16} className="text-muted-foreground mr-2" />
           <input
             type="text"
-            placeholder="Search stocks by name or symbol..."
+            placeholder="Search any stock by name or ticker..."
             className="bg-transparent border-none text-sm text-foreground focus:outline-none w-full placeholder:text-muted-foreground"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
