@@ -14,7 +14,6 @@ const routes = [
   { path: '/', label: 'Markets', icon: LayoutDashboard },
   { path: '/screener', label: 'Screener', icon: Search },
   { path: '/ai', label: 'FactraAI', icon: Cpu },
-  { path: '/strategy', label: 'Strategy', icon: Workflow },
   { path: '/portfolio', label: 'Portfolio', icon: Briefcase },
 ];
 
