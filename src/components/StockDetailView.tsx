@@ -7,6 +7,9 @@ import {
   ResponsiveContainer
 } from "recharts";
 import MarkerSection from "@/components/MarkerSection";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useWhyScore } from "@/hooks/use-why-score";
+import type { WhyScoreData } from "@/hooks/use-why-score";
 import type { StockData } from "@/lib/api";
 
 interface StockDetailViewProps {
@@ -80,7 +83,45 @@ const deriveMetricLabel = (stock: StockData) => [
 ];
 
 /* ── Main Component ──────────────────────────────────── */
+const WhyScoreSkeleton = () => (
+  <div className="space-y-8 relative z-10">
+    <Skeleton className="h-6 w-3/4" />
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+      {[0, 1, 2, 3].map((i) => (
+        <div key={i} className="p-4 rounded-lg bg-foreground/[0.02] border border-foreground/[0.05] space-y-3">
+          <Skeleton className="h-5 w-48" />
+          <Skeleton className="h-4 w-full" />
+          <Skeleton className="h-4 w-2/3" />
+        </div>
+      ))}
+    </div>
+  </div>
+);
+
+const PillarCard = ({ index, label, score, bullets }: {
+  index: string;
+  label: string;
+  score: number | null;
+  bullets: { label: string; text: string }[];
+}) => (
+  <div className="p-4 rounded-lg bg-foreground/[0.02] border border-foreground/[0.05]">
+    <h4 className="text-primary font-bold mb-3 text-lg flex items-center gap-2 font-sans">
+      <span className="opacity-50">{index}.</span> {label} ({score ?? '—'}/100)
+    </h4>
+    <ul className="space-y-3 text-muted-foreground font-sans">
+      {bullets.map((b, i) => (
+        <li key={i} className="flex gap-3">
+          <span className="bg-primary mt-1.5 w-1.5 h-1.5 rounded-full shrink-0" />
+          <span><strong className="text-foreground tracking-wide">{b.label}:</strong> {b.text}</span>
+        </li>
+      ))}
+    </ul>
+  </div>
+);
+
 const StockDetailView = ({ stock, onBack }: StockDetailViewProps) => {
+  const { data: whyScore, isLoading: whyLoading } = useWhyScore(stock);
+
   const vScoreHistory = Array.from({ length: 20 }).map((_, i) => ({
     name: `Day ${i}`,
     Fundamentals: (stock.fundamentals ?? 50) + Math.random() * 20 - 10,
@@ -239,60 +280,56 @@ const StockDetailView = ({ stock, onBack }: StockDetailViewProps) => {
         </div>
 
         <div className="space-y-8 text-base text-muted-foreground leading-relaxed font-sans relative z-10">
-          {stock.has_scores && stock.why_explanation ? (
-            <p className="text-lg text-foreground/80 border-l-2 border-primary/40 pl-6 py-1">
-              {stock.why_explanation}
-            </p>
+          {whyLoading ? (
+            <WhyScoreSkeleton />
+          ) : whyScore ? (
+            <>
+              <p className="text-lg text-foreground/80 border-l-2 border-primary/40 pl-6 py-1">
+                {whyScore.summary}
+              </p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div className="space-y-4">
+                  <PillarCard index="01" label="Fundamentals" score={stock.fundamentals} bullets={whyScore.fundamentals.bullets} />
+                  <PillarCard index="02" label="Momentum" score={stock.momentum} bullets={whyScore.momentum.bullets} />
+                </div>
+                <div className="space-y-4">
+                  <PillarCard index="03" label="Risk" score={stock.risk} bullets={whyScore.risk.bullets} />
+                  <PillarCard index="04" label="Sentiment" score={stock.sentiment} bullets={whyScore.sentiment.bullets} />
+                </div>
+              </div>
+            </>
           ) : (
-            <p className="text-lg text-foreground/80 border-l-2 border-primary/40 pl-6 py-1">
-              {stock.has_scores ? (
-                <>This V-Score of <strong className="text-foreground">{stock.v_score}/100</strong> for {stock.name} ({stock.ticker}) reflects a composite analysis across Fundamentals ({stock.fundamentals ?? '—'}), Momentum ({stock.momentum ?? '—'}), Risk ({stock.risk ?? '—'}), and Sentiment ({stock.sentiment ?? '—'}).</>
-              ) : (
-              <>Score is being calculated for {stock.name} ({stock.ticker}). Refresh in a moment to see the full V-Score breakdown.</>
+            <>
+              <p className="text-lg text-foreground/80 border-l-2 border-primary/40 pl-6 py-1">
+                {stock.has_scores && stock.why_explanation
+                  ? stock.why_explanation
+                  : stock.has_scores
+                    ? <>This V-Score of <strong className="text-foreground">{stock.v_score}/100</strong> for {stock.name} ({stock.ticker}) reflects a composite analysis across all pillars.</>
+                    : <>Score is being calculated for {stock.name} ({stock.ticker}). Refresh in a moment.</>
+                }
+              </p>
+              {stock.has_scores && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  <div className="space-y-4">
+                    <PillarCard index="01" label="Fundamentals" score={stock.fundamentals} bullets={[
+                      { label: "Financial Health", text: stock.fundamentals && stock.fundamentals >= 80 ? 'Elite score indicates robust balance sheet and high-quality earnings.' : stock.fundamentals && stock.fundamentals >= 60 ? 'Solid financials with room for improvement.' : 'Fundamentals suggest caution warranted.' },
+                      { label: "Key Metrics", text: `P/E: ${stock.pe_ratio?.toFixed(1) ?? 'N/A'} | D/E: ${stock.debt_to_equity?.toFixed(2) ?? 'N/A'} | ROE: ${stock.roe ?? 'N/A'}` },
+                    ]} />
+                    <PillarCard index="02" label="Momentum" score={stock.momentum} bullets={[
+                      { label: "Price Trends", text: stock.momentum && stock.momentum >= 70 ? 'Strong uptrend with buyers in control.' : stock.momentum && stock.momentum >= 50 ? 'Neutral momentum, consolidating.' : 'Bearish momentum, price under pressure.' },
+                    ]} />
+                  </div>
+                  <div className="space-y-4">
+                    <PillarCard index="03" label="Risk" score={stock.risk} bullets={[
+                      { label: "Volatility", text: `${stock.risk && stock.risk <= 40 ? 'Low risk profile — suitable for conservative portfolios.' : stock.risk && stock.risk <= 70 ? 'Moderate volatility — standard for growth stocks.' : 'High risk — expect significant price swings.'} Beta: ${stock.beta?.toFixed(2) ?? 'N/A'}` },
+                    ]} />
+                    <PillarCard index="04" label="Sentiment" score={stock.sentiment} bullets={[
+                      { label: "Market View", text: `${stock.sentiment && stock.sentiment >= 70 ? 'Analysts are bullish with strong institutional accumulation.' : stock.sentiment && stock.sentiment >= 50 ? 'Mixed sentiment — market is cautiously positioned.' : 'Bearish sentiment prevails.'} ${stock.analyst_target ? `Target: $${stock.analyst_target.toFixed(2)}` : ''}` },
+                    ]} />
+                  </div>
+                </div>
               )}
-            </p>
-          )}
-
-          {stock.has_scores && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              <div className="space-y-4">
-                <div className="p-4 rounded-lg bg-foreground/[0.02] border border-foreground/[0.05]">
-                  <h4 className="text-primary font-bold mb-3 text-lg flex items-center gap-2 font-sans">
-                    <span className="opacity-50">01.</span> Fundamentals ({stock.fundamentals ?? '—'}/100)
-                  </h4>
-                  <ul className="space-y-3 text-muted-foreground font-sans">
-                    <li className="flex gap-3"><span className="bg-primary mt-1.5 w-1.5 h-1.5 rounded-full shrink-0" /><span><strong className="text-foreground tracking-wide">Financial Health:</strong> {stock.fundamentals && stock.fundamentals >= 80 ? 'Elite score indicates robust balance sheet and high-quality earnings.' : stock.fundamentals && stock.fundamentals >= 60 ? 'Solid financials with room for improvement.' : 'Fundamentals suggest caution warranted.'}</span></li>
-                    <li className="flex gap-3"><span className="bg-primary mt-1.5 w-1.5 h-1.5 rounded-full shrink-0" /><span><strong className="text-foreground tracking-wide">Key Metrics:</strong> P/E: {stock.pe_ratio?.toFixed(1) ?? 'N/A'} | D/E: {stock.debt_to_equity?.toFixed(2) ?? 'N/A'} | ROE: {stock.roe ?? 'N/A'}</span></li>
-                  </ul>
-                </div>
-                <div className="p-4 rounded-lg bg-foreground/[0.02] border border-foreground/[0.05]">
-                  <h4 className="text-primary font-bold mb-3 text-lg flex items-center gap-2 font-sans">
-                    <span className="opacity-50">02.</span> Momentum ({stock.momentum ?? '—'}/100)
-                  </h4>
-                  <ul className="space-y-3 text-muted-foreground font-sans">
-                    <li className="flex gap-3"><span className="bg-primary mt-1.5 w-1.5 h-1.5 rounded-full shrink-0" /><span><strong className="text-foreground tracking-wide">Price Trends:</strong> {stock.momentum && stock.momentum >= 70 ? 'Strong uptrend with buyers in control.' : stock.momentum && stock.momentum >= 50 ? 'Neutral momentum, consolidating.' : 'Bearish momentum, price under pressure.'}</span></li>
-                  </ul>
-                </div>
-              </div>
-              <div className="space-y-4">
-                <div className="p-4 rounded-lg bg-foreground/[0.02] border border-foreground/[0.05]">
-                  <h4 className="text-primary font-bold mb-3 text-lg flex items-center gap-2 font-sans">
-                    <span className="opacity-50">03.</span> Risk ({stock.risk ?? '—'}/100)
-                  </h4>
-                  <ul className="space-y-3 text-muted-foreground font-sans">
-                    <li className="flex gap-3"><span className="bg-primary mt-1.5 w-1.5 h-1.5 rounded-full shrink-0" /><span><strong className="text-foreground tracking-wide">Volatility:</strong> {stock.risk && stock.risk <= 40 ? 'Low risk profile — suitable for conservative portfolios.' : stock.risk && stock.risk <= 70 ? 'Moderate volatility — standard for growth stocks.' : 'High risk — expect significant price swings.'} Beta: {stock.beta?.toFixed(2) ?? 'N/A'}</span></li>
-                  </ul>
-                </div>
-                <div className="p-4 rounded-lg bg-foreground/[0.02] border border-foreground/[0.05]">
-                  <h4 className="text-primary font-bold mb-3 text-lg flex items-center gap-2 font-sans">
-                    <span className="opacity-50">04.</span> Sentiment ({stock.sentiment ?? '—'}/100)
-                  </h4>
-                  <ul className="space-y-3 text-muted-foreground font-sans">
-                    <li className="flex gap-3"><span className="bg-primary mt-1.5 w-1.5 h-1.5 rounded-full shrink-0" /><span><strong className="text-foreground tracking-wide">Market View:</strong> {stock.sentiment && stock.sentiment >= 70 ? 'Analysts are bullish with strong institutional accumulation.' : stock.sentiment && stock.sentiment >= 50 ? 'Mixed sentiment — market is cautiously positioned.' : 'Bearish sentiment prevails.'} {stock.analyst_target ? `Target: $${stock.analyst_target.toFixed(2)}` : ''}</span></li>
-                  </ul>
-                </div>
-              </div>
-            </div>
+            </>
           )}
         </div>
       </div>
