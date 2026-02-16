@@ -10,6 +10,8 @@ import { useStockSummary } from "@/hooks/use-stock-summary";
 import type { StockData } from "@/lib/api";
 import CompanyLogo from "@/components/CompanyLogo";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useAuth } from "@/contexts/AuthContext";
+import { usePortfolio } from "@/hooks/use-portfolio";
 
 interface DashboardViewProps {
   setActiveTab: (tab: string) => void;
@@ -104,6 +106,9 @@ function formatVolume(v: number): string {
 }
 
 const DashboardView = ({ setActiveTab, onSelectStock, onTrade }: DashboardViewProps) => {
+  const { profile } = useAuth();
+  const { data: holdings } = usePortfolio();
+  const cashBalance = profile?.cash_balance ?? 0;
   const [markerType, setMarkerType] = useState('technical');
   const [isMarkersDropdownOpen, setIsMarkersDropdownOpen] = useState(false);
   const markersDropdownRef = useRef<HTMLDivElement>(null);
@@ -179,25 +184,21 @@ const DashboardView = ({ setActiveTab, onSelectStock, onTrade }: DashboardViewPr
           <div className="text-muted-foreground text-xs uppercase tracking-wider mb-2 flex items-center gap-2 group-hover:text-foreground transition-colors">
             <Briefcase size={14} /> Total Equity
           </div>
-          <div className="text-2xl font-bold text-foreground mb-1 tracking-tight group-hover:scale-105 transition-transform origin-left duration-300">$124,592.00</div>
-          <div className="text-sm text-primary flex items-center gap-1 font-medium">
-            <TrendingUp size={14} /> +4.2% <span className="text-muted-foreground/60 ml-1 font-normal">vs last week</span>
-          </div>
+          <div className="text-2xl font-bold text-foreground mb-1 tracking-tight group-hover:scale-105 transition-transform origin-left duration-300">${cashBalance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+          <div className="text-sm text-muted-foreground">Cash balance</div>
         </div>
         <div className="p-6 hover:bg-foreground/[0.03] transition-colors cursor-default group">
           <div className="text-muted-foreground text-xs uppercase tracking-wider mb-2 flex items-center gap-2 group-hover:text-foreground transition-colors">
             <ArrowUpRight size={14} /> Day's P&L
           </div>
-          <div className="text-2xl font-bold text-foreground mb-1 tracking-tight group-hover:scale-105 transition-transform origin-left duration-300">+$1,840.50</div>
-          <div className="text-sm text-primary flex items-center gap-1 font-medium">
-            <TrendingUp size={14} /> +1.5%
-          </div>
+          <div className="text-2xl font-bold text-muted-foreground mb-1 tracking-tight">--</div>
+          <div className="text-sm text-muted-foreground">No trades yet</div>
         </div>
         <div className="p-6 hover:bg-foreground/[0.03] transition-colors cursor-default group">
           <div className="text-muted-foreground text-xs uppercase tracking-wider mb-2 flex items-center gap-2 group-hover:text-foreground transition-colors">
             <Lock size={14} /> Buying Power
           </div>
-          <div className="text-2xl font-bold text-foreground mb-1 tracking-tight group-hover:scale-105 transition-transform origin-left duration-300">$42,000.00</div>
+          <div className="text-2xl font-bold text-foreground mb-1 tracking-tight group-hover:scale-105 transition-transform origin-left duration-300">${cashBalance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
           <div className="text-sm text-muted-foreground">Available cash</div>
         </div>
         <div
@@ -208,8 +209,8 @@ const DashboardView = ({ setActiveTab, onSelectStock, onTrade }: DashboardViewPr
             <div className="text-muted-foreground text-xs uppercase tracking-wider mb-2 flex items-center gap-2 group-hover:text-foreground transition-colors">
               <Activity size={14} /> Portfolio XIRR
             </div>
-            <div className="text-2xl font-bold text-primary tracking-tight">+24.8%</div>
-            <div className="text-sm text-muted-foreground">Annualized return</div>
+            <div className="text-2xl font-bold text-muted-foreground tracking-tight">--</div>
+            <div className="text-sm text-muted-foreground">N/A</div>
           </div>
           <div className="h-10 w-10 rounded-full border border-border flex items-center justify-center text-muted-foreground group-hover:text-foreground group-hover:border-primary group-hover:bg-primary/10 group-hover:scale-110 transition-all duration-300">
             <ChevronRight size={20} />
