@@ -184,9 +184,9 @@ const TradeModal = ({ isOpen, onClose, stock, initialType = 'buy' }: TradeModalP
 
             <div className="p-6 pt-0 mt-auto flex gap-3">
               <button onClick={onClose} className="flex-1 py-3.5 rounded-xl text-sm font-bold text-muted-foreground border border-border hover:bg-secondary hover:text-foreground transition-colors">Cancel</button>
-              <button onClick={handleTrade} disabled={submitting}
+              <button onClick={handleTrade} disabled={submitting || currentPrice <= 0}
                 className={`flex-[2] py-3.5 rounded-xl text-sm font-bold transition-all shadow-lg flex items-center justify-center gap-2 disabled:opacity-50 ${isBuy ? 'bg-primary text-primary-foreground hover:bg-primary/90' : 'bg-destructive text-foreground hover:bg-destructive/90'}`}>
-                {submitting ? 'Processing...' : (
+                {currentPrice <= 0 ? 'Waiting for price data...' : submitting ? 'Processing...' : (
                   <>
                     {isBuy ? <ArrowUpRight size={18} /> : <ArrowDownRight size={18} />}
                     Confirm {isBuy ? 'Buy' : 'Sell'}
