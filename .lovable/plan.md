@@ -1,75 +1,66 @@
 
 
-## Real Conversation History with Backend Integration
+## Database Schema Updates and Daily Cron Job
 
-### Overview
+### 1. Create `orders` Table
 
-Replace the hardcoded mock chat history with real persisted conversations stored in the database. Each user gets their own conversation threads that persist across sessions.
+A new table to track all orders with their status.
 
-### Database Changes
+| Column | Type | Details |
+|--------|------|---------|
+| id | uuid | Primary key, auto-generated |
+| user_id | uuid | NOT NULL |
+| ticker | text | NOT NULL |
+| quantity | numeric | NOT NULL |
+| side | text | CHECK: 'BUY' or 'SELL' |
+| status | text | CHECK: 'FILLED', 'QUEUED', 'CANCELLED'; default 'QUEUED' |
+| created_at | timestamptz | Default now() |
 
-**1. Create `conversations` table**
+RLS policies: users can SELECT their own orders. INSERT/UPDATE restricted to own rows.
 
-| Column | Type | Notes |
-|--------|------|-------|
-| id | uuid | Primary key, default `gen_random_uuid()` |
-| user_id | uuid | Not nullable |
-| title | text | Default `'New Conversation'` |
-| created_at | timestamptz | Default `now()` |
-| updated_at | timestamptz | Default `now()` |
+### 2. Modify `portfolio_history` Table
 
-RLS: users can SELECT, INSERT, UPDATE, DELETE their own conversations only.
+The existing table has columns: `date`, `user_id`, `total_value`, `cash_balance`, `invested_value`, `id`, `created_at`.
 
-**2. Create `chat_messages` table**
+We will:
+- Drop `cash_balance`, `invested_value`, and `total_value` columns
+- Add `total_net_liquidity` (numeric, NOT NULL)
+- Keep `id`, `user_id`, `date`, `created_at`
+- Keep the existing unique constraint on `(user_id, date)` and the SELECT RLS policy
 
-| Column | Type | Notes |
-|--------|------|-------|
-| id | uuid | Primary key, default `gen_random_uuid()` |
-| conversation_id | uuid | Foreign key to `conversations.id` ON DELETE CASCADE |
-| role | text | `'user'` or `'assistant'` |
-| content | text | Message content |
-| created_at | timestamptz | Default `now()` |
+### 3. Update `snapshot-portfolio` Edge Function
 
-RLS: users can SELECT and INSERT messages where the parent conversation belongs to them.
+Rewrite to match the simplified schema:
+- Still fetches all holdings, gets Yahoo prices, gets cash balances
+- Computes `total_net_liquidity = cash + sum(shares * price)` per user
+- Also includes users with NO holdings (cash-only users) by querying all profiles
+- Upserts into `portfolio_history` with just `user_id`, `date`, `total_net_liquidity`
 
-### Frontend Changes
+### 4. Update `use-portfolio-history.ts` Hook
 
-**File: `src/hooks/use-conversations.ts`** (new)
+- Change `PortfolioHistoryPoint` interface to `{ date: string; total_net_liquidity: number }`
+- Update the select query to fetch `date, total_net_liquidity`
 
-A custom hook providing:
-- `conversations`: list of user's conversations ordered by `updated_at` desc
-- `activeConversation`: currently selected conversation ID
-- `messages`: messages for the active conversation
-- `createConversation()`: creates a new conversation and selects it
-- `selectConversation(id)`: loads messages for a conversation
-- `deleteConversation(id)`: removes a conversation
-- Auto-generates a title from the first user message (truncated to ~40 chars)
+### 5. Update `PortfolioView.tsx` (and any chart references)
 
-**File: `src/components/AIView.tsx`**
+- Update any references to `total_value`, `cash_balance`, or `invested_value` to use `total_net_liquidity`
 
-- Remove hardcoded `chatHistory` array and `activeChat` state
-- Import and use the `useConversations` hook
-- Sidebar renders real conversations from the database with relative timestamps (using `date-fns` `formatDistanceToNow`)
-- The "+" button calls `createConversation()`
-- Clicking a conversation loads its messages
-- On sending a message: save user message to DB, stream AI response, save assistant message to DB, update conversation `updated_at` and title (if first message)
-- Add a delete button (trash icon) on conversation items for cleanup
-- Show empty state when no conversations exist
+### 6. Set Up Daily Cron Job (4 PM EST)
 
-### How It Works
+Use `pg_cron` and `pg_net` extensions to call the `snapshot-portfolio` edge function every day at 21:00 UTC (4 PM EST). This will be run as a SQL insert (not a migration) since it contains project-specific URLs and keys:
 
-1. User opens AI tab -- hook fetches their conversations from DB
-2. If no conversations exist, auto-create one with the welcome message
-3. User sends a message -- it's saved to `chat_messages`, then streamed to AI, and the response is also saved
-4. Conversation title is auto-generated from the first user message
-5. Switching conversations loads that conversation's messages from DB
-6. The "+" button creates a fresh conversation
+```text
+Schedule: '0 21 * * *'  (21:00 UTC = 4:00 PM EST)
+Action:   HTTP POST to snapshot-portfolio edge function
+```
 
-### Technical Details
+### Technical: Files Changed
 
-- Uses `useAuth()` to get the current user ID for all queries
-- Messages are saved immediately (user message before streaming, assistant message after streaming completes)
-- Conversation `updated_at` is bumped on each new message so the sidebar sorts correctly
-- Preview text in sidebar shows the last message content, truncated
-- No edge function changes needed -- all persistence uses the Supabase client directly
+| File | Action |
+|------|--------|
+| Migration SQL | Create `orders` table, alter `portfolio_history` |
+| `supabase/functions/snapshot-portfolio/index.ts` | Simplify upsert to `total_net_liquidity` |
+| `src/hooks/use-portfolio-history.ts` | Update types and query |
+| `src/components/PortfolioView.tsx` | Update chart data keys |
+| SQL insert (cron) | Schedule daily job via `pg_cron` + `pg_net` |
 
