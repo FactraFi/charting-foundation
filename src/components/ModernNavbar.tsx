@@ -187,11 +187,6 @@ const ModernNavbar = ({ onLogout }: NavbarProps) => {
                     <p className="text-xs text-muted-foreground">{profile?.email ?? ""}</p>
                   </div>
                   <div className="py-2">
-                    <button className="w-full text-left px-4 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-foreground/5 flex items-center gap-2"><User size={16} /> Account Profile</button>
-                    <button className="w-full text-left px-4 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-foreground/5 flex items-center gap-2"><CreditCard size={16} /> Billing & Plan</button>
-                    <button className="w-full text-left px-4 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-foreground/5 flex items-center gap-2"><Settings size={16} /> Preferences</button>
-                  </div>
-                  <div className="border-t border-border py-2">
                     <button onClick={onLogout} className="w-full text-left px-4 py-2 text-sm text-destructive hover:text-destructive hover:bg-destructive/10 flex items-center gap-2"><LogOut size={16} /> Sign Out</button>
                   </div>
                 </div>
