@@ -247,12 +247,12 @@ const PortfolioView = ({ onSelectStock, onTrade }: PortfolioViewProps) => {
                         borderRadius: 8,
                         fontSize: 12,
                       }}
-                      formatter={(value: number) => [`$${value.toFixed(2)}`, "Portfolio Value"]}
+                      formatter={(value: number) => [`$${value.toFixed(2)}`, "Net Liquidity"]}
                       labelFormatter={(label) => format(new Date(label), "MMM d, yyyy")}
                     />
                     <Area
                       type="monotone"
-                      dataKey="total_value"
+                      dataKey="total_net_liquidity"
                       stroke="hsl(var(--primary))"
                       fill="url(#portfolioGrad)"
                       strokeWidth={2}

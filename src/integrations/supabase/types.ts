@@ -100,32 +100,56 @@ export type Database = {
         }
         Relationships: []
       }
-      portfolio_history: {
+      orders: {
         Row: {
-          cash_balance: number
           created_at: string
-          date: string
           id: string
-          invested_value: number
-          total_value: number
+          quantity: number
+          side: string
+          status: string
+          ticker: string
           user_id: string
         }
         Insert: {
-          cash_balance: number
           created_at?: string
-          date: string
           id?: string
-          invested_value: number
-          total_value: number
+          quantity: number
+          side: string
+          status?: string
+          ticker: string
           user_id: string
         }
         Update: {
-          cash_balance?: number
+          created_at?: string
+          id?: string
+          quantity?: number
+          side?: string
+          status?: string
+          ticker?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      portfolio_history: {
+        Row: {
+          created_at: string
+          date: string
+          id: string
+          total_net_liquidity: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          date: string
+          id?: string
+          total_net_liquidity?: number
+          user_id: string
+        }
+        Update: {
           created_at?: string
           date?: string
           id?: string
-          invested_value?: number
-          total_value?: number
+          total_net_liquidity?: number
           user_id?: string
         }
         Relationships: []

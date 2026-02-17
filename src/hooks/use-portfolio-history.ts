@@ -19,9 +19,7 @@ function getStartDate(period: TimePeriod): string | null {
 
 export interface PortfolioHistoryPoint {
   date: string;
-  total_value: number;
-  cash_balance: number;
-  invested_value: number;
+  total_net_liquidity: number;
 }
 
 export const usePortfolioHistory = (timePeriod: TimePeriod) => {
@@ -33,7 +31,7 @@ export const usePortfolioHistory = (timePeriod: TimePeriod) => {
     queryFn: async () => {
       let query = supabase
         .from("portfolio_history")
-        .select("date, total_value, cash_balance, invested_value")
+        .select("date, total_net_liquidity")
         .eq("user_id", user!.id)
         .order("date", { ascending: true });
 
