@@ -1,56 +1,72 @@
 
 
-## Fix: Phantom P&L Caused by $0 Price Trades
+## Speed Up Price Loading on Screener
 
-### What's Actually Wrong
+### The Problem
 
-The Day's P&L logic (isToday baseline) is now correct -- it shows $0.00 for NVDA and META as expected. The $3,443.35 Day's P&L comes entirely from **V and JPM which were recorded with a purchase price of $0.00** in the database.
+Every stock card on the Screener page makes its own individual call to the `stock-data` backend function. That function, for each single ticker, calls:
 
-This happened because the trade modal uses `stock?.current_price || 0` for the price. If the stock data API hadn't finished loading when you submitted the trade, the price was sent as $0. The database function accepted it without complaint, creating holdings at zero cost and deducting $0 from your cash balance.
+1. **Yahoo Finance** -- live price (fast, ~200ms)
+2. **Alpha Vantage OVERVIEW** -- fundamentals (slow, ~500-1500ms)
+3. **Alpha Vantage BALANCE_SHEET** -- debt data (slow, ~500-1500ms)
 
-### Two-Part Fix
+With ~30 stocks on the screener, that's **~90 external API calls** firing in parallel. Alpha Vantage also has rate limits (5 calls/min on free tier, 75/min on premium), so many of these will fail or queue up.
 
-**Part 1: Prevent future $0 trades (TradeModal + database)**
+The screener cards only need **price + daily change** -- they already have V-Scores from the `stock_scores` database table. They don't need fundamentals at all.
 
-- **TradeModal**: Disable the submit button when `currentPrice` is 0 or stock data is still loading
-- **Database function**: Add a guard in `execute_trade` to reject trades where `p_price <= 0`
+### The Fix: A Lightweight Batch Price Endpoint
 
-**Part 2: Fix the existing bad data**
+Create a new backend function called `stock-prices` that:
+- Accepts multiple tickers in one request (e.g., `?tickers=AAPL,MSFT,GOOGL`)
+- Fetches ONLY Yahoo Finance prices (no Alpha Vantage)
+- Returns all prices in a single response
 
-Run a SQL migration to correct the V and JPM holdings:
-- Update V's `avg_cost` to its current market price (the price at time of purchase)
-- Update JPM's `avg_cost` to its current market price
-- Update the corresponding transaction records
-- Adjust the user's cash balance to reflect what should have been deducted
+Then update the Screener to use this batch endpoint instead of calling `stock-data` 30 times.
 
 ### Technical Details
 
-**File: `src/components/TradeModal.tsx`**
-- Add a check: if `currentPrice <= 0`, disable the Confirm button and show "Waiting for price data..."
+**New file: `supabase/functions/stock-prices/index.ts`**
 
-**Database migration (SQL):**
-
-```sql
--- Prevent $0 trades at the database level
-CREATE OR REPLACE FUNCTION public.execute_trade(...)
-  -- Add at the top of the function body:
-  IF p_price <= 0 THEN
-    RAISE EXCEPTION 'Invalid price: must be greater than zero';
-  END IF;
+```text
+Input:  GET /stock-prices?tickers=AAPL,MSFT,GOOGL,META
+Output: {
+  "AAPL":  { current_price: 255.78, previous_close: 261.73, day_change_pct: -2.27, volume: 56290673 },
+  "MSFT":  { current_price: 401.32, previous_close: 401.84, day_change_pct: -0.13, volume: 34091553 },
+  ...
+}
 ```
 
-**Data fix migration (SQL):**
-- Query the current prices for V and JPM via the stock-data edge function
-- Update holdings rows where avg_cost = 0 with the correct price
-- Update matching transaction rows
-- Deduct the correct total cost from the user's cash balance
+- Fetches Yahoo Finance chart data for each ticker in parallel (no Alpha Vantage)
+- Cap at 50 tickers per request for safety
+- Each Yahoo call is ~200ms, all run in parallel, so total response time is ~200-500ms vs 30+ seconds today
 
-### Summary
+**New file: `src/hooks/use-batch-prices.ts`**
 
-| Change | Purpose |
-|--------|---------|
-| TradeModal: disable submit when price is 0 | Prevent UI from sending bad data |
-| execute_trade: reject p_price <= 0 | Database-level safety net |
-| Fix V and JPM holdings data | Correct the existing $0 cost records |
-| Adjust cash balance | Reflect what should have been charged |
+- A new hook that takes a list of tickers and returns a map of ticker to price data
+- Used by ScreenerView instead of individual `useStockData` calls per card
+
+**Modified: `src/components/ScreenerView.tsx`**
+
+- Remove individual `useStockData` call from each `ScreenerCard`
+- Fetch all prices in one batch at the `ScreenerView` level
+- Pass price data down to each card as a prop
+
+**Modified: `src/lib/api.ts`**
+
+- Add a `fetchBatchPrices` function that calls the new endpoint
+
+### Performance Impact
+
+| Metric | Before | After |
+|--------|--------|-------|
+| API calls per page load | ~30 (one per card) | 1 (batch) |
+| External API calls | ~90 (Yahoo + 2x Alpha Vantage each) | ~30 (Yahoo only, server-side parallel) |
+| Time to show prices | 5-30+ seconds | Under 1 second |
+| Alpha Vantage rate limit risk | High | None |
+
+### What Stays the Same
+
+- The `stock-data` endpoint remains for the Stock Detail page where full fundamentals are needed
+- The `stock_scores` table continues to provide V-Scores for the screener
+- Individual stock detail views still load the full data with Alpha Vantage
 
