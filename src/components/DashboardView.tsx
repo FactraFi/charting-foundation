@@ -12,6 +12,7 @@ import CompanyLogo from "@/components/CompanyLogo";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePortfolio } from "@/hooks/use-portfolio";
+import { useHoldingsWithPrices } from "@/hooks/use-holdings-prices";
 
 interface DashboardViewProps {
   setActiveTab: (tab: string) => void;
@@ -109,6 +110,8 @@ const DashboardView = ({ setActiveTab, onSelectStock, onTrade }: DashboardViewPr
   const { profile } = useAuth();
   const { data: holdings } = usePortfolio();
   const cashBalance = profile?.cash_balance ?? 0;
+  const { totalMarketValue, daysPnl } = useHoldingsWithPrices(holdings ?? []);
+  const totalEquity = cashBalance + totalMarketValue;
   const [markerType, setMarkerType] = useState('technical');
   const [isMarkersDropdownOpen, setIsMarkersDropdownOpen] = useState(false);
   const markersDropdownRef = useRef<HTMLDivElement>(null);
@@ -184,15 +187,17 @@ const DashboardView = ({ setActiveTab, onSelectStock, onTrade }: DashboardViewPr
           <div className="text-muted-foreground text-xs uppercase tracking-wider mb-2 flex items-center gap-2 group-hover:text-foreground transition-colors">
             <Briefcase size={14} /> Total Equity
           </div>
-          <div className="text-2xl font-bold text-foreground mb-1 tracking-tight group-hover:scale-105 transition-transform origin-left duration-300">${cashBalance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
-          <div className="text-sm text-muted-foreground">Cash balance</div>
+          <div className="text-2xl font-bold text-foreground mb-1 tracking-tight group-hover:scale-105 transition-transform origin-left duration-300">${totalEquity.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+          <div className="text-sm text-muted-foreground">Net Worth</div>
         </div>
         <div className="p-6 hover:bg-foreground/[0.03] transition-colors cursor-default group">
           <div className="text-muted-foreground text-xs uppercase tracking-wider mb-2 flex items-center gap-2 group-hover:text-foreground transition-colors">
             <ArrowUpRight size={14} /> Day's P&L
           </div>
-          <div className="text-2xl font-bold text-muted-foreground mb-1 tracking-tight">--</div>
-          <div className="text-sm text-muted-foreground">No trades yet</div>
+          <div className={`text-2xl font-bold mb-1 tracking-tight ${daysPnl >= 0 ? 'text-primary' : 'text-destructive'}`}>
+            {daysPnl !== 0 ? `${daysPnl >= 0 ? '+' : ''}$${Math.abs(daysPnl).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '--'}
+          </div>
+          <div className="text-sm text-muted-foreground">{daysPnl !== 0 ? 'Today' : 'No trades yet'}</div>
         </div>
         <div className="p-6 hover:bg-foreground/[0.03] transition-colors cursor-default group">
           <div className="text-muted-foreground text-xs uppercase tracking-wider mb-2 flex items-center gap-2 group-hover:text-foreground transition-colors">
