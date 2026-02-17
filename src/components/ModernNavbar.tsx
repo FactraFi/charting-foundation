@@ -173,7 +173,7 @@ const ModernNavbar = ({ onLogout }: NavbarProps) => {
               <button className="flex items-center gap-3 group text-left" onClick={() => setShowProfileMenu(!showProfileMenu)}>
                 <div className="text-right hidden xl:block">
                   <div className="text-sm font-medium text-foreground group-hover:text-primary transition-colors">{displayName}</div>
-                  <div className="text-[10px] text-primary">PRO PLAN</div>
+                  <div className="text-[10px] text-primary">PAPER TRADING</div>
                 </div>
                 <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-primary to-info p-[1px] cursor-pointer hover:scale-105 transition-transform duration-200">
                   <div className="w-full h-full rounded-full bg-background flex items-center justify-center text-xs font-bold text-foreground">{initials}</div>
