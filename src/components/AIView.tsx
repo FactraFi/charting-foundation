@@ -1,12 +1,9 @@
 import { useState, useEffect, useRef } from "react";
-import { MessageSquare, Plus, Bot, Send, Loader2 } from "lucide-react";
+import { MessageSquare, Plus, Bot, Send, Loader2, Trash2 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { toast } from "sonner";
-
-interface ChatMessage {
-  role: 'user' | 'assistant';
-  content: string;
-}
+import { formatDistanceToNow } from "date-fns";
+import { useConversations } from "@/hooks/use-conversations";
 
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat`;
 
@@ -65,7 +62,6 @@ async function streamChat({
     }
   }
 
-  // flush remaining
   if (buffer.trim()) {
     for (let raw of buffer.split("\n")) {
       if (!raw) continue;
@@ -85,23 +81,24 @@ async function streamChat({
 }
 
 const AIView = () => {
-  const [input, setInput] = useState('');
-  const [messages, setMessages] = useState<ChatMessage[]>([
-    { role: 'assistant', content: "Hello. I am FactraAI. I can analyze market sentiment, explain quantitative strategies, or summarize news. How can I assist you today?" }
-  ]);
+  const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const [activeChat, setActiveChat] = useState(1);
-
-  const chatHistory = [
-    { id: 1, title: 'New Conversation', preview: 'Hello. I am FactraAI...', time: 'Now' },
-    { id: 2, title: 'NVDA Earnings Analysis', preview: 'Analyze the projected EPS vs consensus...', time: '2h ago' },
-    { id: 3, title: 'Crypto Momentum', preview: 'Which altcoins are showing RSI divergence?', time: '1d ago' },
-    { id: 4, title: 'Macro Trends Q3', preview: 'Summarize the impact of yield curve...', time: '3d ago' },
-    { id: 5, title: 'Tech Sector Rotation', preview: 'Is money flowing out of mega-caps?', time: '1w ago' },
-  ];
-
   const isFirstRender = useRef(true);
+
+  const {
+    conversations,
+    activeConversationId,
+    messages,
+    loadingConversations,
+    selectConversation,
+    createConversation,
+    deleteConversation,
+    saveMessage,
+    updateTitle,
+    setMessages,
+    fetchConversations,
+  } = useConversations();
 
   useEffect(() => {
     if (isFirstRender.current) {
@@ -113,38 +110,63 @@ const AIView = () => {
 
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!input.trim() || isLoading) return;
+    if (!input.trim() || isLoading || !activeConversationId) return;
 
     const userMsg = input;
-    setInput('');
-    const userMessage: ChatMessage = { role: 'user', content: userMsg };
-    setMessages(prev => [...prev, userMessage]);
+    setInput("");
+    const userMessage = { role: "user" as const, content: userMsg };
+    setMessages((prev) => [...prev, userMessage]);
     setIsLoading(true);
+
+    // Save user message to DB
+    await saveMessage(activeConversationId, "user", userMsg);
+
+    // Auto-title from first user message
+    const isFirstUserMsg = messages.filter((m) => m.role === "user").length === 0;
+    if (isFirstUserMsg) {
+      await updateTitle(activeConversationId, userMsg);
+    }
 
     let assistantSoFar = "";
     const upsertAssistant = (chunk: string) => {
       assistantSoFar += chunk;
-      setMessages(prev => {
+      setMessages((prev) => {
         const last = prev[prev.length - 1];
-        if (last?.role === "assistant" && prev.length > 1 && prev[prev.length - 2]?.role === "user" && prev[prev.length - 2]?.content === userMsg) {
+        if (last?.role === "assistant" && prev.length > 1 && prev[prev.length - 2]?.role === "user") {
           return prev.map((m, i) => (i === prev.length - 1 ? { ...m, content: assistantSoFar } : m));
         }
-        return [...prev, { role: "assistant", content: assistantSoFar }];
+        return [...prev, { role: "assistant" as const, content: assistantSoFar }];
       });
     };
 
     try {
-      const apiMessages = [...messages, userMessage].map(m => ({ role: m.role, content: m.content }));
+      const apiMessages = [...messages, userMessage].map((m) => ({ role: m.role, content: m.content }));
       await streamChat({
         messages: apiMessages,
         onDelta: upsertAssistant,
-        onDone: () => setIsLoading(false),
+        onDone: async () => {
+          setIsLoading(false);
+          // Save assistant message to DB
+          if (assistantSoFar) {
+            await saveMessage(activeConversationId, "assistant", assistantSoFar);
+            fetchConversations(); // Refresh sidebar
+          }
+        },
       });
     } catch (err: any) {
       console.error("Chat error:", err);
       setIsLoading(false);
       toast.error(err.message || "Failed to get response");
     }
+  };
+
+  const handleNewChat = async () => {
+    await createConversation();
+  };
+
+  const handleDeleteChat = async (e: React.MouseEvent, id: string) => {
+    e.stopPropagation();
+    await deleteConversation(id);
   };
 
   return (
@@ -157,34 +179,51 @@ const AIView = () => {
           </h3>
           <button
             className="p-2 rounded-lg bg-secondary text-muted-foreground hover:text-foreground hover:bg-primary/20 transition-all border border-border hover:border-primary/50"
-            onClick={() => {
-              setMessages([{ role: 'assistant', content: "Hello. I am FactraAI. How can I assist you today?" }]);
-              setActiveChat(1);
-            }}
+            onClick={handleNewChat}
           >
             <Plus size={18} />
           </button>
         </div>
         <div className="flex-1 overflow-y-auto p-3 space-y-2 custom-scrollbar">
-          {chatHistory.map((chat) => (
-            <div
-              key={chat.id}
-              onClick={() => setActiveChat(chat.id)}
-              className={`p-4 rounded-xl cursor-pointer transition-all border group ${
-                activeChat === chat.id
-                  ? 'bg-primary/10 border-primary/30'
-                  : 'bg-secondary/30 border-transparent hover:bg-secondary hover:border-border'
-              }`}
-            >
-              <div className="flex justify-between items-start mb-6 relative z-10">
-                <span className={`text-sm font-bold ${activeChat === chat.id ? 'text-primary' : 'text-foreground group-hover:text-foreground/80'}`}>
-                  {chat.title}
-                </span>
-                <span className="text-[10px] text-muted-foreground">{chat.time}</span>
-              </div>
-              <p className="text-xs text-muted-foreground truncate opacity-80">{chat.preview}</p>
+          {loadingConversations ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 size={20} className="animate-spin text-muted-foreground" />
             </div>
-          ))}
+          ) : conversations.length === 0 ? (
+            <p className="text-sm text-muted-foreground text-center py-8">No conversations yet</p>
+          ) : (
+            conversations.map((conv) => (
+              <div
+                key={conv.id}
+                onClick={() => selectConversation(conv.id)}
+                className={`p-4 rounded-xl cursor-pointer transition-all border group relative ${
+                  activeConversationId === conv.id
+                    ? "bg-primary/10 border-primary/30"
+                    : "bg-secondary/30 border-transparent hover:bg-secondary hover:border-border"
+                }`}
+              >
+                <div className="flex justify-between items-start mb-1">
+                  <span className={`text-sm font-bold truncate pr-6 ${activeConversationId === conv.id ? "text-primary" : "text-foreground group-hover:text-foreground/80"}`}>
+                    {conv.title}
+                  </span>
+                  <div className="flex items-center gap-1 shrink-0">
+                    <span className="text-[10px] text-muted-foreground">
+                      {formatDistanceToNow(new Date(conv.updated_at), { addSuffix: true })}
+                    </span>
+                    <button
+                      onClick={(e) => handleDeleteChat(e, conv.id)}
+                      className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-destructive/20 hover:text-destructive transition-all"
+                    >
+                      <Trash2 size={12} />
+                    </button>
+                  </div>
+                </div>
+                <p className="text-xs text-muted-foreground truncate opacity-80">
+                  {conv.last_message?.slice(0, 80) || "New conversation"}
+                </p>
+              </div>
+            ))
+          )}
         </div>
       </div>
 
@@ -202,13 +241,13 @@ const AIView = () => {
 
         <div className="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar bg-background/50">
           {messages.map((msg, idx) => (
-            <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+            <div key={idx} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
               <div className={`max-w-[85%] p-4 rounded-2xl ${
-                msg.role === 'user'
-                  ? 'bg-primary text-primary-foreground rounded-tr-none shadow-[0_0_15px_hsl(var(--primary)/0.1)]'
-                  : 'bg-secondary text-foreground/90 rounded-tl-none border border-border'
+                msg.role === "user"
+                  ? "bg-primary text-primary-foreground rounded-tr-none shadow-[0_0_15px_hsl(var(--primary)/0.1)]"
+                  : "bg-secondary text-foreground/90 rounded-tl-none border border-border"
               }`}>
-                {msg.role === 'assistant' ? (
+                {msg.role === "assistant" ? (
                   <div className="text-sm prose prose-sm prose-invert max-w-none leading-relaxed">
                     <ReactMarkdown>{msg.content}</ReactMarkdown>
                   </div>
@@ -218,7 +257,7 @@ const AIView = () => {
               </div>
             </div>
           ))}
-          {isLoading && messages[messages.length - 1]?.role !== 'assistant' && (
+          {isLoading && messages[messages.length - 1]?.role !== "assistant" && (
             <div className="flex justify-start">
               <div className="bg-secondary p-4 rounded-2xl rounded-tl-none flex gap-2 items-center border border-border">
                 <Loader2 size={16} className="animate-spin text-primary" />
