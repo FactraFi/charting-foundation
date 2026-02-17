@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { X, ArrowUpRight, ArrowDownRight, CheckCircle, Info, FileText, AlertCircle } from "lucide-react";
+import { X, ArrowUpRight, ArrowDownRight, CheckCircle, FileText, AlertCircle } from "lucide-react";
 import type { StockData } from "@/lib/api";
 import { useExecuteTrade } from "@/hooks/use-portfolio";
 import { useAuth } from "@/contexts/AuthContext";
@@ -15,11 +15,8 @@ const TradeModal = ({ isOpen, onClose, stock, initialType = 'buy' }: TradeModalP
   const { profile } = useAuth();
   const executeTrade = useExecuteTrade();
   const [tradeType, setTradeType] = useState<'buy' | 'sell'>(initialType);
-  const [orderType, setOrderType] = useState<'market' | 'limit'>('market');
   const [quantity, setQuantity] = useState(1);
-  const [limitPrice, setLimitPrice] = useState(0);
   const [orderPlaced, setOrderPlaced] = useState(false);
-  const [showTooltip, setShowTooltip] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
 
@@ -28,20 +25,13 @@ const TradeModal = ({ isOpen, onClose, stock, initialType = 'buy' }: TradeModalP
   const companyName = stock?.name || '';
 
   useEffect(() => {
-    setLimitPrice(currentPrice);
-  }, [currentPrice, isOpen]);
-
-  useEffect(() => {
     setTradeType(initialType);
     setQuantity(1);
     setOrderPlaced(false);
-    setOrderType('market');
-    setShowTooltip(false);
     setError('');
   }, [initialType, isOpen]);
 
-  const effectivePrice = orderType === 'limit' ? limitPrice : currentPrice;
-  const estimatedTotal = (quantity * effectivePrice).toFixed(2);
+  const estimatedTotal = (quantity * currentPrice).toFixed(2);
   const isBuy = tradeType === 'buy';
 
   const handleTrade = async (e: React.FormEvent) => {
@@ -53,7 +43,7 @@ const TradeModal = ({ isOpen, onClose, stock, initialType = 'buy' }: TradeModalP
       await executeTrade({
         ticker: symbol,
         shares: quantity,
-        price: effectivePrice,
+        price: currentPrice,
         type: tradeType,
       });
       setOrderPlaced(true);
@@ -116,14 +106,6 @@ const TradeModal = ({ isOpen, onClose, stock, initialType = 'buy' }: TradeModalP
 
               <div className="space-y-4">
                 <div className="flex justify-between items-center">
-                  <span className="text-muted-foreground text-sm font-medium">Order Type</span>
-                  <div className="flex bg-secondary rounded-lg p-0.5 border border-border">
-                    <button onClick={() => setOrderType('market')} className={`px-3 py-1.5 rounded text-xs font-bold transition-colors ${orderType === 'market' ? 'bg-muted text-foreground' : 'text-muted-foreground hover:text-foreground/70'}`}>Market</button>
-                    <button onClick={() => setOrderType('limit')} className={`px-3 py-1.5 rounded text-xs font-bold transition-colors ${orderType === 'limit' ? 'bg-muted text-foreground' : 'text-muted-foreground hover:text-foreground/70'}`}>Limit</button>
-                  </div>
-                </div>
-
-                <div className="flex justify-between items-center">
                   <span className="text-muted-foreground text-sm font-medium">Quantity</span>
                   <div className="flex items-center gap-2">
                     <input type="number" min="1" value={quantity} onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 0))} className="w-24 bg-card border border-border rounded-lg px-3 py-2 text-right text-foreground font-mono text-sm focus:border-primary focus:outline-none transition-colors" />
@@ -132,24 +114,9 @@ const TradeModal = ({ isOpen, onClose, stock, initialType = 'buy' }: TradeModalP
                 </div>
 
                 <div className="flex justify-between items-center">
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-muted-foreground text-sm font-medium">{orderType === 'limit' ? 'Limit Price' : 'Market Price'}</span>
-                    <div className="relative">
-                      <Info size={14} className="text-muted-foreground cursor-help hover:text-foreground transition-colors" onMouseEnter={() => setShowTooltip(true)} onMouseLeave={() => setShowTooltip(false)} />
-                      {showTooltip && (
-                        <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-48 bg-secondary border border-border rounded-lg shadow-xl p-3 z-50 pointer-events-none">
-                          <div className="text-foreground text-xs font-bold mb-1">{orderType === 'market' ? 'Market Order' : 'Limit Order'}</div>
-                          <div className="text-muted-foreground text-[10px] leading-relaxed">{orderType === 'market' ? 'Executes immediately at the current market price.' : 'Executes only when the price reaches your specified limit.'}</div>
-                        </div>
-                      )}
-                    </div>
-                  </div>
+                  <span className="text-muted-foreground text-sm font-medium">Market Price</span>
                   <div className="flex items-center gap-2">
-                    {orderType === 'limit' ? (
-                      <input type="number" step="0.01" value={limitPrice} onChange={(e) => setLimitPrice(parseFloat(e.target.value) || 0)} className={`w-24 bg-card border rounded-lg px-3 py-2 text-right text-foreground font-mono text-sm focus:outline-none transition-colors ${isBuy ? 'border-primary' : 'border-destructive'}`} />
-                    ) : (
-                      <span className="text-foreground font-mono text-sm px-3 py-2">${currentPrice.toFixed(2)}</span>
-                    )}
+                    <span className="text-foreground font-mono text-sm px-3 py-2">${currentPrice.toFixed(2)}</span>
                     <span className="text-muted-foreground text-xs font-medium w-8">USD</span>
                   </div>
                 </div>
