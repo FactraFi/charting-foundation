@@ -1,48 +1,41 @@
 
 
-# Fix Inconsistent Fonts on Portfolio Page
+## Fix: Day's P&L Should Be $0 for Trades Placed While Market Is Closed
 
-## Problem
-The Portfolio page mixes `font-brand` (Space Grotesk) and the default `font-sans` (Inter) inconsistently across headings, KPI values, table headers, and section titles. The reference screenshots show a clean, bold aesthetic with consistent typography.
+### Problem
+When you buy a stock after market close, the system compares the current price against the previous day's close. Since the stock may have dropped during that trading day (before you owned it), you see a phantom loss that isn't yours.
 
-## Approach
-Standardize the page to use `font-brand` (Space Grotesk) for all headings, card titles, KPI labels, and numeric values, while keeping body/description text in `font-sans` (Inter). Add `font-bold` to all section headings and key labels for visual weight.
+**Example:** You buy NVDA at $182.78 (current/after-hours price). The previous close was $186.97. The system reports -$8.38 Day's P&L even though you just bought it and have no real intraday loss.
 
-## Changes (single file: `src/components/PortfolioView.tsx`)
+### Fix
+For Day's P&L, the baseline price for each holding should be the **higher of** the previous close and the user's average cost. This way:
+- If you bought today (avg_cost >= previous_close in most cases, or close to current price), your Day's P&L contribution is ~$0
+- If you held overnight, the normal previous_close logic applies
 
-### 1. Page header (line 132)
-- Already uses `font-bold font-brand` -- no change needed.
+### Technical Changes
 
-### 2. KPI card values (lines 145, 159, 173, 185)
-- Already use `font-bold font-brand` -- no change needed.
+**File: `src/hooks/use-holdings-prices.ts`**
 
-### 3. KPI card labels (lines 144, 158, 172, 184)
-- Already use `font-bold` with uppercase tracking -- no change needed.
+Update the Day's P&L loop (line 46) to use the user's entry price as the floor for the baseline:
 
-### 4. Card section titles ("Performance", "Allocation", "Portfolio Health", "Holdings", "Recent Activity")
-- Lines 199, 279, 319, 367, 402: These `CardTitle` elements use `text-sm font-bold` but are missing `font-brand`. Add `font-brand` to all of them for consistency.
+```ts
+for (const h of holdings) {
+  const stock = stockDataMap.get(h.ticker);
+  const price = stock?.current_price ?? h.avg_cost;
+  const prevClose = stock?.previous_close ?? price;
 
-### 5. Table headers (line 373-381)
-- `TableHead` elements currently use default font. Add `font-brand font-bold` to each `TableHead` for bolder, consistent column headers.
+  // Use the higher of previous_close and avg_cost as baseline.
+  // This prevents showing phantom losses for positions opened
+  // after the previous close (e.g., during after-hours or same day).
+  const baseline = Math.max(prevClose, h.avg_cost);
 
-### 6. Holding row ticker name (line 61)
-- Add `font-brand` alongside existing `font-bold`.
+  totalMarketValue += price * h.shares;
+  totalCost += h.avg_cost * h.shares;
+  daysPnl += (price - baseline) * h.shares;
+}
+```
 
-### 7. Holding row numeric cells (lines 66-71)
-- Add `font-brand` to the `font-medium` and `font-bold` cells for tabular values.
-
-### 8. Recent Activity ticker (line 418)
-- Add `font-brand` to the ticker label.
-
-### 9. Recent Activity total value (line 426)
-- Add `font-brand` to the transaction amount.
-
-### 10. Portfolio Health labels ("Beta", "Sharpe Ratio") and values (lines 348-354)
-- Add `font-brand` to the value spans.
-
-### 11. Empty state text
-- Keep as `font-sans` (Inter) since these are descriptive paragraphs.
-
-## Summary
-All headings, section titles, ticker labels, and numeric values will use `font-brand` (Space Grotesk) with appropriate bold weights. Descriptive/body text stays in Inter. This matches the bold, clean aesthetic shown in the reference images.
+This is a single-line change that ensures:
+- **New positions** (bought at or near current price): Day's P&L shows ~$0
+- **Existing positions** (held overnight, avg_cost < previous_close): Day's P&L tracks the normal daily move from previous close
 
