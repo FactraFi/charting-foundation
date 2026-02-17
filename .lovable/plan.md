@@ -1,81 +1,31 @@
 
 
-## Fix: Show Market Cap and P/E Ratio on Screener Cards
+## Fix: Total Equity Tile on Markets Dashboard
 
 ### The Problem
 
-The screener cards hardcode "---" (em dash) for Market Cap and P/E Ratio (lines 82 and 86 of ScreenerView.tsx). The data source for screener cards is the `stock_scores` table, which doesn't contain these fields. Meanwhile, the MarkerSection on the stock detail page gets them from the full `stock-data` endpoint (which calls Alpha Vantage).
-
-### Available Data
-
-- **Market Cap**: Already stored in the `stock_universe` database table (e.g., "3.8T", "139.1B"). No external API call needed.
-- **P/E Ratio**: Not stored in any cached table. Only available via Alpha Vantage (slow, rate-limited). Not worth fetching for every screener card.
+The "Total Equity" tile currently displays only the cash balance (`$8,615.82` in the screenshot) and labels it "Cash balance". Total equity should be **cash + market value of all stock holdings**, and the subtitle should read "Net Worth".
 
 ### The Fix
 
-**1. Fetch Market Cap from the database (no API calls)**
+**File: `src/components/DashboardView.tsx`**
 
-Modify `fetchScoredUniverse` in `src/lib/api.ts` to join `stock_universe` and pull `market_cap` alongside scores. Since both tables share the `ticker` column, we can do a simple left join or a second query merged client-side.
+1. Import `useHoldingsWithPrices` from `@/hooks/use-holdings-prices`
+2. Call `useHoldingsWithPrices(holdings ?? [])` to get `totalMarketValue` and `daysPnl`
+3. Compute `totalEquity = cashBalance + totalMarketValue`
+4. Update the Total Equity tile value from `cashBalance` to `totalEquity`
+5. Change the subtitle text from "Cash balance" to "Net Worth"
+6. Also update the Day's P&L tile to show the actual `daysPnl` value from the hook (instead of hardcoded "--")
 
-**2. Add Market Cap to the ScreenerStock interface and cards**
+### What Changes
 
-Update the `ScreenerStock` interface in `ScreenerView.tsx` to include `market_cap`, then display it on the card instead of "---".
+| Element | Before | After |
+|---------|--------|-------|
+| Total Equity value | Cash only | Cash + holdings market value |
+| Total Equity subtitle | "Cash balance" | "Net Worth" |
+| Day's P&L value | Hardcoded "--" | Actual day's P&L from holdings |
 
-**3. P/E Ratio -- show "N/A" instead of "---"**
+### No New Files or Endpoints
 
-Since P/E isn't available without slow API calls, change the display from "---" to "N/A" to be consistent with the rest of the app. Alternatively, we can remove the P/E field from screener cards entirely and only show it on the detail page.
-
-### Technical Details
-
-**File: `src/lib/api.ts`**
-
-Update `fetchScoredUniverse` to also fetch market_cap by querying `stock_universe`:
-
-```typescript
-export const fetchScoredUniverse = async (): Promise<StockScoreRow[]> => {
-  // Fetch scores
-  const { data: scores, error } = await supabase
-    .from("stock_scores")
-    .select("*")
-    .not("v_score", "is", null)
-    .order("v_score", { ascending: false });
-  if (error) throw error;
-
-  // Fetch market caps from stock_universe
-  const { data: universe } = await supabase
-    .from("stock_universe")
-    .select("ticker, market_cap");
-
-  // Merge market_cap into scores
-  const capMap = new Map((universe || []).map(u => [u.ticker, u.market_cap]));
-  return (scores || []).map(s => ({
-    ...s,
-    market_cap: capMap.get(s.ticker) || null,
-  }));
-};
-```
-
-**File: `src/lib/api.ts` (StockScoreRow type)**
-
-Add `market_cap` to the `StockScoreRow` interface:
-
-```typescript
-export interface StockScoreRow {
-  // ...existing fields...
-  market_cap: string | null;
-}
-```
-
-**File: `src/components/ScreenerView.tsx`**
-
-- Add `market_cap` to the `ScreenerStock` interface
-- Pass `market_cap` from universe data into screener stocks
-- Display `stock.market_cap || 'N/A'` instead of "---" on the card
-- Change P/E Ratio to show "N/A"
-
-### What This Does NOT Do
-
-- Does not add any new API calls or slow things down
-- Does not fetch P/E ratio (that requires Alpha Vantage and would re-introduce the speed problem we just fixed)
-- P/E is still visible on the stock detail page where the full data is loaded
+This reuses the existing `useHoldingsWithPrices` hook which already computes `totalMarketValue` and `daysPnl`. The hook uses the batch price data via `fetchStockData` for each unique ticker in holdings (typically a small number).
 
