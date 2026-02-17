@@ -1,26 +1,72 @@
 
 
-# Update Stock Summary to 50-Word Analyst Takeaways
+# Restore Missing Portfolio Components (Empty State)
 
 ## Problem
 
-Current summaries just echo raw scores (e.g., "Strong 85/100 fundamentals and 76 momentum...") that users can already see in the Markers section. They provide no real insight.
+The portfolio page was simplified during the auth migration. Several sections visible in the original design are now missing:
 
-## Solution
+- **KPI cards**: Should show Net Liquidity, Day's P&L, Total Return, and Buying Power (currently shows Positions, Mode, Currency, Buying Power)
+- **Performance chart**: Area chart with time period tabs (1W, 1M, 3M, YTD, 1Y, ALL) -- entirely missing
+- **Portfolio Health card**: Shows Beta, Sharpe Ratio, and a health score circle -- missing
+- **Recent Activity sidebar**: Shows recent trades (Buy/Sell/Dividend) -- missing
+- **Holdings table columns**: Missing Mkt Value and Total Return columns; has Buy/Sell buttons instead of an action menu
 
-Update three parts of `supabase/functions/stock-summary/index.ts`:
+## Plan
 
-1. **User prompt (line 25)**: Change instruction from "Write a 25-word-max analyst summary covering fundamentals, momentum, and sentiment. Be specific and data-driven. No disclaimers." to: "In 50 words or fewer, give a plain-English analyst takeaway: what is the investment case or concern for this stock right now? Focus on outlook, key drivers, and catalysts. Do NOT restate raw scores or numbers. No disclaimers."
+All changes are in a single file: `src/components/PortfolioView.tsx`
 
-2. **System message (line 36)**: Change from "You are a concise equity analyst. Return only the summary text, nothing else." to: "You are a concise equity analyst. Provide actionable takeaways in plain English. Never restate raw scores or numbers the user can already see. Return only the summary text."
+### 1. KPI Row (empty values)
 
-3. **Tool parameter description (line 48)**: Change from "25-word max analyst summary" to "50-word max plain-English analyst takeaway focusing on outlook and key drivers"
+Replace the current 4 KPI cards with:
 
-## Expected Result
+| Card | Empty Value |
+|------|-------------|
+| Net Liquidity | Shows cash_balance (real from profile) |
+| Day's P&L | $0.00 / 0% when no holdings |
+| Total Return | $0.00 / 0% when no holdings |
+| Buying Power | cash_balance (real from profile) |
 
-**Before:** "Strong 85/100 fundamentals and 76 momentum support long-term growth, though 39/100 sentiment and high 2.31 beta warrant caution despite a 4.1 analyst rating."
+When holdings exist, Net Liquidity and returns will be computed from live prices.
 
-**After:** "NVIDIA's AI chip dominance and data center revenue surge position it as the top AI infrastructure play. However, elevated valuation multiples and cooling market sentiment suggest near-term volatility. Watch upcoming earnings and hyperscaler capex guidance for the next catalyst."
+### 2. Performance Chart Section
 
-No frontend changes needed -- the summary is already rendered dynamically via the `useStockSummary` hook.
+Add a card with:
+- Title "Performance" with a sparkle/activity icon
+- Time period toggle buttons: 1W, 1M, 3M, YTD, 1Y, ALL
+- Empty state message: "No performance history yet" when no holdings/trades exist
+- When holdings exist, show an empty chart area (no mock data)
+
+### 3. Allocation + Portfolio Health (Right Column)
+
+Restore the two-card right column beside the performance chart:
+- **Allocation**: Donut chart showing sector breakdown (computed from holdings sectors when available, empty state otherwise)
+- **Portfolio Health**: Shows portfolio Beta, Sharpe Ratio, and a circular score indicator -- all showing "--" or "N/A" when empty
+
+### 4. Holdings Table
+
+Update columns to match the original design:
+- Asset, Qty, Avg Cost, Price, Mkt Value, Total Return, Action
+- Add Mkt Value (shares x price) and Total Return (dollar + percentage) columns
+- Replace inline Buy/Sell buttons with a "..." action menu
+
+### 5. Recent Activity Sidebar
+
+Add a card showing recent trades:
+- Pulls from holdings data (or a future trades table)
+- Shows empty state "No recent activity" when no trades exist
+
+### 6. Layout
+
+Use a grid layout matching the screenshot:
+- Top: 4 KPI cards in a row
+- Middle: Performance chart (left ~60%) + Allocation and Portfolio Health stacked (right ~40%)
+- Bottom: Holdings table (left ~65%) + Recent Activity (right ~35%)
+
+### Technical Details
+
+- File modified: `src/components/PortfolioView.tsx`
+- No new dependencies needed (recharts AreaChart already available)
+- All sections show real data from DB when available, empty/zero states otherwise
+- No mock or hardcoded data values
 
