@@ -32,6 +32,12 @@ export const useHoldingsWithPrices = (holdings: DbHolding[]): HoldingsWithPrices
     if (r.data) stockDataMap.set(uniqueTickers[i], r.data);
   });
 
+  const isToday = (dateStr: string) => {
+    const d = new Date(dateStr);
+    const now = new Date();
+    return d.toDateString() === now.toDateString();
+  };
+
   let totalMarketValue = 0;
   let totalCost = 0;
   let daysPnl = 0;
@@ -43,12 +49,11 @@ export const useHoldingsWithPrices = (holdings: DbHolding[]): HoldingsWithPrices
 
     totalMarketValue += price * h.shares;
     totalCost += h.avg_cost * h.shares;
-    const dailyMove = (price - prevClose) * h.shares;
-    const totalPnl = (price - h.avg_cost) * h.shares;
-    // Day's P&L can't exceed total P&L in magnitude for positions opened today
-    daysPnl += totalPnl >= 0
-      ? Math.min(dailyMove, totalPnl)
-      : Math.max(dailyMove, totalPnl);
+
+    // Positions opened today: baseline is purchase price
+    // Positions held overnight: baseline is previous close
+    const baseline = isToday(h.created_at) ? h.avg_cost : prevClose;
+    daysPnl += (price - baseline) * h.shares;
   }
 
   const totalReturn = totalMarketValue - totalCost;
