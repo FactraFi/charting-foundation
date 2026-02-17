@@ -1,72 +1,85 @@
 
 
-# Restore Missing Portfolio Components (Empty State)
+# Create Transactions Table and Atomic Trade Function
 
-## Problem
+## Overview
 
-The portfolio page was simplified during the auth migration. Several sections visible in the original design are now missing:
+Create a `transactions` table for permanent trade records and an `execute_trade` database function that performs all trade operations atomically, replacing the current multi-step client-side logic.
 
-- **KPI cards**: Should show Net Liquidity, Day's P&L, Total Return, and Buying Power (currently shows Positions, Mode, Currency, Buying Power)
-- **Performance chart**: Area chart with time period tabs (1W, 1M, 3M, YTD, 1Y, ALL) -- entirely missing
-- **Portfolio Health card**: Shows Beta, Sharpe Ratio, and a health score circle -- missing
-- **Recent Activity sidebar**: Shows recent trades (Buy/Sell/Dividend) -- missing
-- **Holdings table columns**: Missing Mkt Value and Total Return columns; has Buy/Sell buttons instead of an action menu
+## Step 1: Database Migration
 
-## Plan
+Create the `transactions` table and `execute_trade` RPC function in a single migration.
 
-All changes are in a single file: `src/components/PortfolioView.tsx`
+**Table: `transactions`**
 
-### 1. KPI Row (empty values)
+| Column | Type | Constraints |
+|--------|------|------------|
+| id | uuid | PK, default gen_random_uuid() |
+| user_id | uuid | NOT NULL, references profiles(id) |
+| ticker | text | NOT NULL |
+| type | text | NOT NULL, check in ('buy','sell') |
+| shares | numeric | NOT NULL |
+| price | numeric | NOT NULL |
+| created_at | timestamptz | default now() |
 
-Replace the current 4 KPI cards with:
+RLS policies:
+- Users can SELECT their own transactions
+- Users can INSERT their own transactions (needed for the RPC with security definer, but also as a safety net)
 
-| Card | Empty Value |
-|------|-------------|
-| Net Liquidity | Shows cash_balance (real from profile) |
-| Day's P&L | $0.00 / 0% when no holdings |
-| Total Return | $0.00 / 0% when no holdings |
-| Buying Power | cash_balance (real from profile) |
+**Function: `execute_trade(p_ticker, p_type, p_shares, p_price)`**
 
-When holdings exist, Net Liquidity and returns will be computed from live prices.
+A `SECURITY DEFINER` PL/pgSQL function that:
+1. Gets `auth.uid()` for the current user
+2. Fetches the user's `cash_balance` from `profiles`
+3. Calculates `total = p_shares * p_price`
+4. **Buy path**: validates sufficient cash, deducts from balance, upserts into `holdings` (weighted avg cost calculation)
+5. **Sell path**: validates sufficient shares, adds to balance, updates/deletes holding
+6. Inserts a record into `transactions`
+7. All within a single atomic function call (implicit transaction)
 
-### 2. Performance Chart Section
+## Step 2: Update `use-portfolio.ts`
 
-Add a card with:
-- Title "Performance" with a sparkle/activity icon
-- Time period toggle buttons: 1W, 1M, 3M, YTD, 1Y, ALL
-- Empty state message: "No performance history yet" when no holdings/trades exist
-- When holdings exist, show an empty chart area (no mock data)
+Replace the entire `useExecuteTrade` hook body. Instead of multiple client-side Supabase calls, make a single RPC call:
 
-### 3. Allocation + Portfolio Health (Right Column)
+```typescript
+const { error } = await supabase.rpc("execute_trade", {
+  p_ticker: ticker,
+  p_type: type,
+  p_shares: shares,
+  p_price: price,
+});
+```
 
-Restore the two-card right column beside the performance chart:
-- **Allocation**: Donut chart showing sector breakdown (computed from holdings sectors when available, empty state otherwise)
-- **Portfolio Health**: Shows portfolio Beta, Sharpe Ratio, and a circular score indicator -- all showing "--" or "N/A" when empty
+Then refresh profile and invalidate queries for both `holdings` and `transactions`.
 
-### 4. Holdings Table
+## Step 3: Add `useTransactions` Hook
 
-Update columns to match the original design:
-- Asset, Qty, Avg Cost, Price, Mkt Value, Total Return, Action
-- Add Mkt Value (shares x price) and Total Return (dollar + percentage) columns
-- Replace inline Buy/Sell buttons with a "..." action menu
+Add a new query hook in `use-portfolio.ts` to fetch recent transactions:
 
-### 5. Recent Activity Sidebar
+```typescript
+export const useTransactions = (limit = 10) => {
+  const { user } = useAuth();
+  return useQuery({
+    queryKey: ["transactions", user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("transactions")
+        .select("*")
+        .eq("user_id", user!.id)
+        .order("created_at", { ascending: false })
+        .limit(limit);
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!user,
+  });
+};
+```
 
-Add a card showing recent trades:
-- Pulls from holdings data (or a future trades table)
-- Shows empty state "No recent activity" when no trades exist
+## Step 4: Wire Up Recent Activity in `PortfolioView.tsx`
 
-### 6. Layout
-
-Use a grid layout matching the screenshot:
-- Top: 4 KPI cards in a row
-- Middle: Performance chart (left ~60%) + Allocation and Portfolio Health stacked (right ~40%)
-- Bottom: Holdings table (left ~65%) + Recent Activity (right ~35%)
-
-### Technical Details
-
-- File modified: `src/components/PortfolioView.tsx`
-- No new dependencies needed (recharts AreaChart already available)
-- All sections show real data from DB when available, empty/zero states otherwise
-- No mock or hardcoded data values
+Update the "Recent Activity" card to use `useTransactions()` and display each trade with:
+- Buy/Sell icon and color coding (green for buy, red for sell)
+- Ticker, shares, price, and relative timestamp (e.g., "2 hours ago")
+- Empty state when no transactions exist
 
