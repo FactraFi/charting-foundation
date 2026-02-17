@@ -14,10 +14,13 @@ import type { StockData } from "@/lib/api";
 import CompanyLogo from "@/components/CompanyLogo";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePortfolio, useTransactions, type DbHolding } from "@/hooks/use-portfolio";
+import { useHoldingsWithPrices } from "@/hooks/use-holdings-prices";
+import { usePortfolioHistory } from "@/hooks/use-portfolio-history";
 import {
   PieChart as RePieChart, Pie, Cell, ResponsiveContainer, Tooltip,
+  AreaChart, Area, XAxis, YAxis, CartesianGrid,
 } from "recharts";
-import { formatDistanceToNow } from "date-fns";
+import { formatDistanceToNow, format } from "date-fns";
 
 const PIE_COLORS = [
   "hsl(155 100% 50%)",
@@ -102,17 +105,21 @@ const PortfolioView = ({ onSelectStock, onTrade }: PortfolioViewProps) => {
   const [timePeriod, setTimePeriod] = useState<typeof TIME_PERIODS[number]>("1M");
   const cashBalance = profile?.cash_balance ?? 10000;
 
-  // Compute portfolio-level metrics
-  const netLiquidity = cashBalance; // Will add holdings market value when prices load
-  const daysPnl = 0;
-  const daysPnlPct = 0;
-  const totalReturn = 0;
-  const totalReturnPct = 0;
+  const {
+    totalMarketValue, totalCost, daysPnl, totalReturn, isLoading: pricesLoading, stockDataMap,
+  } = useHoldingsWithPrices(holdings);
 
-  const pieData = holdings.map((h) => ({
-    name: h.ticker,
-    value: h.shares * h.avg_cost,
-  }));
+  const { data: historyData = [] } = usePortfolioHistory(timePeriod);
+
+  const netLiquidity = cashBalance + totalMarketValue;
+  const daysPnlPct = netLiquidity - daysPnl !== 0 ? (daysPnl / (netLiquidity - daysPnl)) * 100 : 0;
+  const totalReturnPct = totalCost > 0 ? (totalReturn / totalCost) * 100 : 0;
+
+  const pieData = holdings.map((h) => {
+    const stock = stockDataMap.get(h.ticker);
+    const price = stock?.current_price ?? h.avg_cost;
+    return { name: h.ticker, value: price * h.shares };
+  });
 
   if (isLoading) {
     return <div className="text-center py-20 text-muted-foreground">Loading portfolio...</div>;
@@ -208,12 +215,59 @@ const PortfolioView = ({ onSelectStock, onTrade }: PortfolioViewProps) => {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="h-[200px] flex items-center justify-center text-muted-foreground text-sm">
-              <div className="text-center space-y-2">
-                <Activity size={32} className="mx-auto opacity-30" />
-                <p>No performance history yet</p>
+            {historyData.length > 0 ? (
+              <div className="h-[200px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={historyData} margin={{ top: 5, right: 5, left: 5, bottom: 5 }}>
+                    <defs>
+                      <linearGradient id="portfolioGrad" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity={0.3} />
+                        <stop offset="100%" stopColor="hsl(var(--primary))" stopOpacity={0} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
+                    <XAxis
+                      dataKey="date"
+                      tickFormatter={(v) => format(new Date(v), "MMM d")}
+                      tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
+                      axisLine={false}
+                      tickLine={false}
+                    />
+                    <YAxis
+                      tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
+                      axisLine={false}
+                      tickLine={false}
+                      tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`}
+                      width={45}
+                    />
+                    <Tooltip
+                      contentStyle={{
+                        background: "hsl(var(--card))",
+                        border: "1px solid hsl(var(--border))",
+                        borderRadius: 8,
+                        fontSize: 12,
+                      }}
+                      formatter={(value: number) => [`$${value.toFixed(2)}`, "Portfolio Value"]}
+                      labelFormatter={(label) => format(new Date(label), "MMM d, yyyy")}
+                    />
+                    <Area
+                      type="monotone"
+                      dataKey="total_value"
+                      stroke="hsl(var(--primary))"
+                      fill="url(#portfolioGrad)"
+                      strokeWidth={2}
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
               </div>
-            </div>
+            ) : (
+              <div className="h-[200px] flex items-center justify-center text-muted-foreground text-sm">
+                <div className="text-center space-y-2">
+                  <Activity size={32} className="mx-auto opacity-30" />
+                  <p>No performance history yet</p>
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
 

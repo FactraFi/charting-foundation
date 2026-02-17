@@ -20,3 +20,6 @@ verify_jwt = false
 
 [functions.why-score]
 verify_jwt = false
+
+[functions.snapshot-portfolio]
+verify_jwt = false
