@@ -44,6 +44,36 @@ export type Database = {
         }
         Relationships: []
       }
+      portfolio_history: {
+        Row: {
+          cash_balance: number
+          created_at: string
+          date: string
+          id: string
+          invested_value: number
+          total_value: number
+          user_id: string
+        }
+        Insert: {
+          cash_balance: number
+          created_at?: string
+          date: string
+          id?: string
+          invested_value: number
+          total_value: number
+          user_id: string
+        }
+        Update: {
+          cash_balance?: number
+          created_at?: string
+          date?: string
+          id?: string
+          invested_value?: number
+          total_value?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           cash_balance: number
