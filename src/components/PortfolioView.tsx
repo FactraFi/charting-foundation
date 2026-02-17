@@ -58,16 +58,16 @@ const HoldingRow = ({
             <CompanyLogo ticker={holding.ticker} size={32} className="rounded-lg object-cover" />
           </div>
           <div>
-            <div className="font-bold text-foreground text-sm">{holding.ticker}</div>
+            <div className="font-bold font-brand text-foreground text-sm">{holding.ticker}</div>
             <div className="text-[10px] text-muted-foreground">{stock?.name ?? holding.ticker}</div>
           </div>
         </div>
       </TableCell>
-      <TableCell className="text-right tabular-nums font-medium">{holding.shares}</TableCell>
-      <TableCell className="text-right tabular-nums text-muted-foreground">${holding.avg_cost.toFixed(2)}</TableCell>
-      <TableCell className="text-right tabular-nums font-medium">${price.toFixed(2)}</TableCell>
-      <TableCell className="text-right tabular-nums font-medium">${mktValue.toFixed(2)}</TableCell>
-      <TableCell className={`text-right tabular-nums font-bold ${positive ? "text-primary" : "text-destructive"}`}>
+      <TableCell className="text-right tabular-nums font-medium font-brand">{holding.shares}</TableCell>
+      <TableCell className="text-right tabular-nums font-brand text-muted-foreground">${holding.avg_cost.toFixed(2)}</TableCell>
+      <TableCell className="text-right tabular-nums font-medium font-brand">${price.toFixed(2)}</TableCell>
+      <TableCell className="text-right tabular-nums font-medium font-brand">${mktValue.toFixed(2)}</TableCell>
+      <TableCell className={`text-right tabular-nums font-bold font-brand ${positive ? "text-primary" : "text-destructive"}`}>
         {positive ? "+" : ""}${totalReturn.toFixed(2)}
         <div className="text-[10px]">{positive ? "+" : ""}{totalReturnPct}%</div>
       </TableCell>
@@ -196,7 +196,7 @@ const PortfolioView = ({ onSelectStock, onTrade }: PortfolioViewProps) => {
         <Card className="border-border lg:col-span-3">
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
-              <CardTitle className="text-sm font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
+              <CardTitle className="text-sm font-bold font-brand text-muted-foreground uppercase tracking-wider flex items-center gap-2">
                 <Activity size={14} /> Performance
               </CardTitle>
               <div className="flex gap-1">
@@ -276,7 +276,7 @@ const PortfolioView = ({ onSelectStock, onTrade }: PortfolioViewProps) => {
           {/* Allocation */}
           <Card className="border-border flex-1">
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-bold text-muted-foreground uppercase tracking-wider">Allocation</CardTitle>
+              <CardTitle className="text-sm font-bold font-brand text-muted-foreground uppercase tracking-wider">Allocation</CardTitle>
             </CardHeader>
             <CardContent className="flex flex-col items-center">
               {pieData.length > 0 ? (
@@ -316,7 +316,7 @@ const PortfolioView = ({ onSelectStock, onTrade }: PortfolioViewProps) => {
           {/* Portfolio Health */}
           <Card className="border-border flex-1">
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
+              <CardTitle className="text-sm font-bold font-brand text-muted-foreground uppercase tracking-wider flex items-center gap-2">
                 <Shield size={14} /> Portfolio Health
               </CardTitle>
             </CardHeader>
@@ -346,11 +346,11 @@ const PortfolioView = ({ onSelectStock, onTrade }: PortfolioViewProps) => {
                 <div className="flex-1 space-y-2">
                   <div className="flex justify-between text-xs">
                     <span className="text-muted-foreground">Beta</span>
-                    <span className="font-bold text-foreground">--</span>
+                    <span className="font-bold font-brand text-foreground">--</span>
                   </div>
                   <div className="flex justify-between text-xs">
                     <span className="text-muted-foreground">Sharpe Ratio</span>
-                    <span className="font-bold text-foreground">--</span>
+                    <span className="font-bold font-brand text-foreground">--</span>
                   </div>
                 </div>
               </div>
@@ -364,20 +364,20 @@ const PortfolioView = ({ onSelectStock, onTrade }: PortfolioViewProps) => {
         {/* Holdings Table */}
         <Card className="border-border lg:col-span-3">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-bold text-muted-foreground uppercase tracking-wider">Holdings</CardTitle>
+            <CardTitle className="text-sm font-bold font-brand text-muted-foreground uppercase tracking-wider">Holdings</CardTitle>
           </CardHeader>
           <CardContent className="p-0">
             {holdings.length > 0 ? (
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Asset</TableHead>
-                    <TableHead className="text-right">Qty</TableHead>
-                    <TableHead className="text-right">Avg Cost</TableHead>
-                    <TableHead className="text-right">Price</TableHead>
-                    <TableHead className="text-right">Mkt Value</TableHead>
-                    <TableHead className="text-right">Total Return</TableHead>
-                    <TableHead className="text-right">Action</TableHead>
+                    <TableHead className="font-brand font-bold">Asset</TableHead>
+                    <TableHead className="text-right font-brand font-bold">Qty</TableHead>
+                    <TableHead className="text-right font-brand font-bold">Avg Cost</TableHead>
+                    <TableHead className="text-right font-brand font-bold">Price</TableHead>
+                    <TableHead className="text-right font-brand font-bold">Mkt Value</TableHead>
+                    <TableHead className="text-right font-brand font-bold">Total Return</TableHead>
+                    <TableHead className="text-right font-brand font-bold">Action</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -399,7 +399,7 @@ const PortfolioView = ({ onSelectStock, onTrade }: PortfolioViewProps) => {
         {/* Recent Activity */}
         <Card className="border-border lg:col-span-2">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
+            <CardTitle className="text-sm font-bold font-brand text-muted-foreground uppercase tracking-wider flex items-center gap-2">
               <Clock size={14} /> Recent Activity
             </CardTitle>
           </CardHeader>
@@ -415,7 +415,7 @@ const PortfolioView = ({ onSelectStock, onTrade }: PortfolioViewProps) => {
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-1.5">
-                          <span className="font-bold text-sm text-foreground">{tx.ticker}</span>
+                          <span className="font-bold font-brand text-sm text-foreground">{tx.ticker}</span>
                           <span className={`text-[10px] font-bold uppercase ${isBuy ? "text-primary" : "text-destructive"}`}>{tx.type}</span>
                         </div>
                         <p className="text-[10px] text-muted-foreground">
@@ -423,7 +423,7 @@ const PortfolioView = ({ onSelectStock, onTrade }: PortfolioViewProps) => {
                         </p>
                       </div>
                       <div className="text-right">
-                        <p className="text-xs font-bold tabular-nums text-foreground">${(tx.shares * tx.price).toFixed(2)}</p>
+                        <p className="text-xs font-bold font-brand tabular-nums text-foreground">${(tx.shares * tx.price).toFixed(2)}</p>
                         <p className="text-[10px] text-muted-foreground">
                           {formatDistanceToNow(new Date(tx.created_at), { addSuffix: true })}
                         </p>
