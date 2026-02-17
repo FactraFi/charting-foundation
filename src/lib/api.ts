@@ -70,6 +70,7 @@ export interface StockScoreRow {
   sentiment: number | null;
   style: string | null;
   updated_at: string;
+  market_cap: string | null;
 }
 
 // ---------- Fetchers ----------
@@ -123,11 +124,20 @@ export const searchStocks = async (query: string, limit = 10): Promise<SearchRes
 
 /** Fetch scored universe from stock_scores table (for Screener default view) */
 export const fetchScoredUniverse = async (): Promise<StockScoreRow[]> => {
-  const { data, error } = await supabase
+  const { data: scores, error } = await supabase
     .from("stock_scores")
     .select("*")
     .not("v_score", "is", null)
     .order("v_score", { ascending: false });
   if (error) throw error;
-  return (data as unknown as StockScoreRow[]) || [];
+
+  const { data: universe } = await supabase
+    .from("stock_universe")
+    .select("ticker, market_cap");
+
+  const capMap = new Map((universe || []).map(u => [u.ticker, u.market_cap]));
+  return (scores || []).map(s => ({
+    ...(s as unknown as StockScoreRow),
+    market_cap: capMap.get(s.ticker) || null,
+  }));
 };
