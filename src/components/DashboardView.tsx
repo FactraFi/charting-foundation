@@ -13,6 +13,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePortfolio } from "@/hooks/use-portfolio";
 import { useHoldingsWithPrices } from "@/hooks/use-holdings-prices";
+import { useStartOfDayLiquidity } from "@/hooks/use-start-of-day-liquidity";
 
 interface DashboardViewProps {
   setActiveTab: (tab: string) => void;
@@ -110,8 +111,11 @@ const DashboardView = ({ setActiveTab, onSelectStock, onTrade }: DashboardViewPr
   const { profile } = useAuth();
   const { data: holdings } = usePortfolio();
   const cashBalance = profile?.cash_balance ?? 0;
-  const { totalMarketValue, daysPnl } = useHoldingsWithPrices(holdings ?? []);
+  const { totalMarketValue } = useHoldingsWithPrices(holdings ?? []);
   const totalEquity = cashBalance + totalMarketValue;
+  const { data: startOfDayLiquidity } = useStartOfDayLiquidity();
+  const daysPnl = startOfDayLiquidity != null ? totalEquity - startOfDayLiquidity : 0;
+  const daysPnlPct = startOfDayLiquidity ? (daysPnl / startOfDayLiquidity) * 100 : 0;
   const [markerType, setMarkerType] = useState('technical');
   const [isMarkersDropdownOpen, setIsMarkersDropdownOpen] = useState(false);
   const markersDropdownRef = useRef<HTMLDivElement>(null);
@@ -195,9 +199,9 @@ const DashboardView = ({ setActiveTab, onSelectStock, onTrade }: DashboardViewPr
             <ArrowUpRight size={14} /> Day's P&L
           </div>
           <div className={`text-2xl font-bold mb-1 tracking-tight ${daysPnl >= 0 ? 'text-primary' : 'text-destructive'}`}>
-            {daysPnl !== 0 ? `${daysPnl >= 0 ? '+' : ''}$${Math.abs(daysPnl).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '--'}
+            {startOfDayLiquidity != null ? `${daysPnl >= 0 ? '+' : ''}$${Math.abs(daysPnl).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '--'}
           </div>
-          <div className="text-sm text-muted-foreground">{daysPnl !== 0 ? 'Today' : 'No trades yet'}</div>
+          <div className="text-sm text-muted-foreground">{startOfDayLiquidity != null ? `${daysPnlPct >= 0 ? '+' : ''}${daysPnlPct.toFixed(2)}% Today` : 'No trades yet'}</div>
         </div>
         <div className="p-6 hover:bg-foreground/[0.03] transition-colors cursor-default group">
           <div className="text-muted-foreground text-xs uppercase tracking-wider mb-2 flex items-center gap-2 group-hover:text-foreground transition-colors">
