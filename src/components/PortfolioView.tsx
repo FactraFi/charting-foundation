@@ -13,11 +13,11 @@ import { useStockData } from "@/hooks/use-stock-data";
 import type { StockData } from "@/lib/api";
 import CompanyLogo from "@/components/CompanyLogo";
 import { useAuth } from "@/contexts/AuthContext";
-import { usePortfolio, type DbHolding } from "@/hooks/use-portfolio";
+import { usePortfolio, useTransactions, type DbHolding } from "@/hooks/use-portfolio";
 import {
   PieChart as RePieChart, Pie, Cell, ResponsiveContainer, Tooltip,
-  AreaChart, Area, XAxis, YAxis, CartesianGrid
 } from "recharts";
+import { formatDistanceToNow } from "date-fns";
 
 const PIE_COLORS = [
   "hsl(155 100% 50%)",
@@ -98,6 +98,7 @@ interface PortfolioViewProps {
 const PortfolioView = ({ onSelectStock, onTrade }: PortfolioViewProps) => {
   const { profile } = useAuth();
   const { data: holdings = [], isLoading } = usePortfolio();
+  const { data: transactions = [] } = useTransactions(10);
   const [timePeriod, setTimePeriod] = useState<typeof TIME_PERIODS[number]>("1M");
   const cashBalance = profile?.cash_balance ?? 10000;
 
@@ -349,11 +350,41 @@ const PortfolioView = ({ onSelectStock, onTrade }: PortfolioViewProps) => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="flex flex-col items-center justify-center py-12 space-y-3">
-              <Clock size={28} className="text-muted-foreground opacity-40" />
-              <p className="text-sm text-muted-foreground">No recent activity</p>
-              <p className="text-xs text-muted-foreground">Your trade history will appear here</p>
-            </div>
+            {transactions.length > 0 ? (
+              <div className="space-y-3">
+                {transactions.map((tx) => {
+                  const isBuy = tx.type === "buy";
+                  return (
+                    <div key={tx.id} className="flex items-center gap-3 py-2 border-b border-border last:border-0">
+                      <div className={`p-1.5 rounded-lg ${isBuy ? "bg-primary/10 text-primary" : "bg-destructive/10 text-destructive"}`}>
+                        {isBuy ? <ArrowUpRight size={14} /> : <ArrowDownRight size={14} />}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-1.5">
+                          <span className="font-bold text-sm text-foreground">{tx.ticker}</span>
+                          <span className={`text-[10px] font-bold uppercase ${isBuy ? "text-primary" : "text-destructive"}`}>{tx.type}</span>
+                        </div>
+                        <p className="text-[10px] text-muted-foreground">
+                          {tx.shares} shares @ ${tx.price.toFixed(2)}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-xs font-bold tabular-nums text-foreground">${(tx.shares * tx.price).toFixed(2)}</p>
+                        <p className="text-[10px] text-muted-foreground">
+                          {formatDistanceToNow(new Date(tx.created_at), { addSuffix: true })}
+                        </p>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center py-12 space-y-3">
+                <Clock size={28} className="text-muted-foreground opacity-40" />
+                <p className="text-sm text-muted-foreground">No recent activity</p>
+                <p className="text-xs text-muted-foreground">Your trade history will appear here</p>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
