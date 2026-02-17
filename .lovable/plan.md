@@ -1,66 +1,133 @@
 
 
-## Database Schema Updates and Daily Cron Job
+## Portfolio Overhaul: KPIs, Market Hours Trading, Open Orders, Holdings, and Charts
 
-### 1. Create `orders` Table
+This is the same plan as previously approved, with three targeted adjustments incorporated.
 
-A new table to track all orders with their status.
+---
 
-| Column | Type | Details |
-|--------|------|---------|
-| id | uuid | Primary key, auto-generated |
-| user_id | uuid | NOT NULL |
-| ticker | text | NOT NULL |
-| quantity | numeric | NOT NULL |
-| side | text | CHECK: 'BUY' or 'SELL' |
-| status | text | CHECK: 'FILLED', 'QUEUED', 'CANCELLED'; default 'QUEUED' |
-| created_at | timestamptz | Default now() |
+### Phase 2: KPI Row (Account-Level Math)
 
-RLS policies: users can SELECT their own orders. INSERT/UPDATE restricted to own rows.
+Update the top 4 KPI cards in `PortfolioView.tsx`:
 
-### 2. Modify `portfolio_history` Table
+| KPI | Formula |
+|-----|---------|
+| Net Liquidity | `cashBalance + totalMarketValue` |
+| Buying Power | `cashBalance` |
+| Day's P&L | `currentNetLiquidity - startOfDayLiquidity` (fallback: $10,000) |
+| Day's P&L % | `(daysPnl / startOfDayLiquidity) * 100` |
+| Total Return | `currentNetLiquidity - 10000` |
+| Total Return % | `(totalReturn / 10000) * 100` |
 
-The existing table has columns: `date`, `user_id`, `total_value`, `cash_balance`, `invested_value`, `id`, `created_at`.
+**Changes:**
+- Create `src/hooks/use-start-of-day-liquidity.ts` -- fetches the most recent `portfolio_history` row for the current user
+- Update `PortfolioView.tsx` KPI cards to use new formulas
 
-We will:
-- Drop `cash_balance`, `invested_value`, and `total_value` columns
-- Add `total_net_liquidity` (numeric, NOT NULL)
-- Keep `id`, `user_id`, `date`, `created_at`
-- Keep the existing unique constraint on `(user_id, date)` and the SELECT RLS policy
+---
 
-### 3. Update `snapshot-portfolio` Edge Function
+### Phase 3: Market Hours Trade Execution
 
-Rewrite to match the simplified schema:
-- Still fetches all holdings, gets Yahoo prices, gets cash balances
-- Computes `total_net_liquidity = cash + sum(shares * price)` per user
-- Also includes users with NO holdings (cash-only users) by querying all profiles
-- Upserts into `portfolio_history` with just `user_id`, `date`, `total_net_liquidity`
+**Database changes:**
+- Add `'FAILED'` to the `orders.status` CHECK constraint (new enum value for overdraft protection)
+- Replace the `execute_trade` function: checks if current time is within US market hours (9:30 AM - 4:00 PM EST, Mon-Fri). If OPEN: execute immediately + insert order as `FILLED`. If CLOSED: insert order as `QUEUED` only.
 
-### 4. Update `use-portfolio-history.ts` Hook
+**New Edge Function: `process-queued-orders`**
+- Finds all `QUEUED` orders
+- Groups orders by user
+- For each order: fetches current market price, then **checks the user's current `cash_balance` before executing** (Adjustment #2)
+  - If the user has sufficient cash for a BUY order at the live price: execute (update cash, holdings, transactions) and set status to `FILLED`
+  - If insufficient cash: set the order status to `FAILED` and skip to the next order
+  - SELL orders: verify the user still holds enough shares; if not, mark `FAILED`
+- Uses the service role key to bypass RLS
 
-- Change `PortfolioHistoryPoint` interface to `{ date: string; total_net_liquidity: number }`
-- Update the select query to fetch `date, total_net_liquidity`
+**Cron schedules (SQL inserts, not migrations):**
 
-### 5. Update `PortfolioView.tsx` (and any chart references)
-
-- Update any references to `total_value`, `cash_balance`, or `invested_value` to use `total_net_liquidity`
-
-### 6. Set Up Daily Cron Job (4 PM EST)
-
-Use `pg_cron` and `pg_net` extensions to call the `snapshot-portfolio` edge function every day at 21:00 UTC (4 PM EST). This will be run as a SQL insert (not a migration) since it contains project-specific URLs and keys:
+Adjustment #1 -- Both cron jobs use `pg_cron`'s timezone-aware scheduling to avoid DST drift:
 
 ```text
-Schedule: '0 21 * * *'  (21:00 UTC = 4:00 PM EST)
-Action:   HTTP POST to snapshot-portfolio edge function
+-- Market open trigger (9:30 AM Eastern, weekdays)
+SELECT cron.schedule(
+  'morning-order-processor',
+  '30 9 * * 1-5',
+  $$ ... HTTP POST to process-queued-orders ... $$
+);
+-- Then update to use America/New_York timezone:
+UPDATE cron.job SET timezone = 'America/New_York' WHERE jobname = 'morning-order-processor';
+
+-- Daily portfolio snapshot (4:00 PM Eastern, every day)
+UPDATE cron.job SET timezone = 'America/New_York', schedule = '0 16 * * *'
+WHERE jobname = 'daily-portfolio-snapshot';
 ```
+
+This ensures both jobs fire at the correct local Eastern Time regardless of DST changes.
+
+**Frontend updates:**
+- Update `TradeModal.tsx` to show "Order Executed" (market open) or "Order Queued for Market Open" (market closed)
+- Create `src/lib/market-hours.ts` with `isMarketOpen()` utility
+
+---
+
+### Phase 4: Open Orders UI
+
+New section in `PortfolioView.tsx` placed between the Performance Chart and Holdings table.
+
+**New hook: `src/hooks/use-orders.ts`**
+- `useQueuedOrders()`: fetches orders where `status = 'QUEUED'`
+- `useCancelOrder()`: updates order status to `CANCELLED`
+
+**UI:**
+- Table columns: Ticker, Side (badge), Quantity, Status (blue "Queued for Open" badge), Action (Cancel button)
+- Cancel sets status to `CANCELLED` and invalidates query
+- Empty state: "No pending orders at this time."
+
+---
+
+### Phase 5: Holdings Table Math
+
+Already correctly implemented -- no changes needed:
+- Avg Cost, Mkt Value, Total Return, Total Return % all use the correct formulas
+- Zero-quantity positions are removed by `execute_trade`
+
+---
+
+### Phase 6: Charts and Portfolio Health
+
+**Performance Chart and Allocation Chart** -- already correct, no changes needed.
+
+**Portfolio Health (Beta and Sharpe Ratio):**
+
+Adjustment #3 -- SPY data is fetched and cached server-side to avoid API rate limits:
+
+- Create a new Edge Function: `supabase/functions/spy-history/index.ts`
+  - Fetches 30-day SPY closing prices from Yahoo Finance
+  - Caches the result in a `spy_daily_cache` table (columns: `date`, `close_price`, `fetched_at`)
+  - On each call, checks if cached data is less than 12 hours old; if so, returns cached data without hitting Yahoo
+  - If stale or missing, fetches fresh data, upserts into the cache table, and returns it
+- Create `src/hooks/use-portfolio-health.ts`
+  - Calls the `spy-history` edge function (not Yahoo directly)
+  - Fetches last 30 days of user's `portfolio_history`
+  - Calculates daily returns for both series
+  - **Beta** = Covariance(portfolio returns, SPY returns) / Variance(SPY returns)
+  - **Sharpe Ratio** = (avg daily return - 0.0001) / stddev * sqrt(252)
+- Update the Portfolio Health card in `PortfolioView.tsx` to display computed Beta, Sharpe Ratio, and health score
+
+---
 
 ### Technical: Files Changed
 
 | File | Action |
 |------|--------|
-| Migration SQL | Create `orders` table, alter `portfolio_history` |
-| `supabase/functions/snapshot-portfolio/index.ts` | Simplify upsert to `total_net_liquidity` |
-| `src/hooks/use-portfolio-history.ts` | Update types and query |
-| `src/components/PortfolioView.tsx` | Update chart data keys |
-| SQL insert (cron) | Schedule daily job via `pg_cron` + `pg_net` |
+| Database migration | Add `FAILED` to `orders.status` CHECK; rewrite `execute_trade` function |
+| `src/hooks/use-start-of-day-liquidity.ts` | Create -- fetch most recent portfolio_history row |
+| `src/hooks/use-orders.ts` | Create -- queued orders query + cancel mutation |
+| `src/hooks/use-portfolio-health.ts` | Create -- Beta and Sharpe calculations |
+| `src/lib/market-hours.ts` | Create -- `isMarketOpen()` utility |
+| `src/components/PortfolioView.tsx` | Update -- KPI formulas, Open Orders section, health metrics |
+| `src/components/TradeModal.tsx` | Update -- market hours feedback |
+| `supabase/functions/process-queued-orders/index.ts` | Create -- morning order processor with overdraft protection |
+| `supabase/functions/spy-history/index.ts` | Create -- cached SPY history endpoint |
+| `supabase/config.toml` | Add `process-queued-orders` and `spy-history` function configs |
+| Database migration | Create `spy_daily_cache` table |
+| SQL insert (cron) | Schedule `process-queued-orders` at 9:30 AM ET weekdays with `America/New_York` timezone |
+| SQL update (cron) | Fix existing `daily-portfolio-snapshot` to use `America/New_York` timezone and `0 16 * * *` schedule |
 
