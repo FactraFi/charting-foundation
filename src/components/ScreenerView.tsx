@@ -19,6 +19,7 @@ interface ScreenerStock {
   sector: string;
   industry: string;
   v_score: number | null;
+  market_cap: string | null;
   signal: string;
 }
 
@@ -79,11 +80,11 @@ const ScreenerCard = ({
         </div>
         <div className="flex flex-col">
           <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider mb-1">Market Cap</span>
-          <span className="text-foreground font-bold">—</span>
+          <span className="text-foreground font-bold">{stock.market_cap || 'N/A'}</span>
         </div>
         <div className="flex flex-col">
           <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider mb-1">P/E Ratio</span>
-          <span className="text-foreground font-bold">—</span>
+          <span className="text-foreground font-bold">N/A</span>
         </div>
         <div className="flex flex-col">
           <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider mb-1">Signal</span>
@@ -176,6 +177,7 @@ const ScreenerView = ({ onSelectStock, onTrade }: ScreenerViewProps) => {
     sector: s.sector || '',
     industry: s.industry || '',
     v_score: s.v_score,
+    market_cap: s.market_cap || null,
     signal: s.v_score ? (s.v_score >= 85 ? 'Strong Buy' : s.v_score >= 70 ? 'Buy' : s.v_score >= 50 ? 'Hold' : 'Sell') : '—',
   }));
 
@@ -187,6 +189,7 @@ const ScreenerView = ({ onSelectStock, onTrade }: ScreenerViewProps) => {
         sector: r.sector,
         industry: r.industry,
         v_score: screenerStocks.find(s => s.ticker === r.ticker)?.v_score ?? null,
+        market_cap: screenerStocks.find(s => s.ticker === r.ticker)?.market_cap ?? null,
         signal: 'Pending',
       }))
     : screenerStocks;
