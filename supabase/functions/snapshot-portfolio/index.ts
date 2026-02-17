@@ -24,13 +24,19 @@ Deno.serve(async (req) => {
     const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const sb = createClient(SUPABASE_URL, SERVICE_KEY);
 
-    // Get all distinct user_ids that have holdings
+    // Get all profiles (includes cash-only users)
+    const { data: profiles, error: pErr } = await sb
+      .from("profiles")
+      .select("id, cash_balance");
+    if (pErr) throw pErr;
+
+    // Get all holdings
     const { data: holdingsData, error: hErr } = await sb
       .from("holdings")
       .select("user_id, ticker, shares");
     if (hErr) throw hErr;
 
-    // Group by user
+    // Group holdings by user
     const userHoldings = new Map<string, { ticker: string; shares: number }[]>();
     for (const h of holdingsData ?? []) {
       if (!userHoldings.has(h.user_id)) userHoldings.set(h.user_id, []);
@@ -50,34 +56,19 @@ Deno.serve(async (req) => {
       if (r.status === "fulfilled") priceMap.set(r.value.ticker, r.value.price);
     }
 
-    // Get cash balances for all users with holdings
-    const userIds = [...userHoldings.keys()];
-    const { data: profiles, error: pErr } = await sb
-      .from("profiles")
-      .select("id, cash_balance")
-      .in("id", userIds);
-    if (pErr) throw pErr;
-
-    const cashMap = new Map<string, number>();
-    for (const p of profiles ?? []) {
-      cashMap.set(p.id, p.cash_balance);
-    }
-
-    // Build upsert rows
+    // Build upsert rows for ALL users
     const today = new Date().toISOString().split("T")[0];
-    const rows = userIds.map((uid) => {
-      const holdings = userHoldings.get(uid) ?? [];
+    const rows = (profiles ?? []).map((p) => {
+      const holdings = userHoldings.get(p.id) ?? [];
       const invested = holdings.reduce((sum, h) => {
         const price = priceMap.get(h.ticker) ?? 0;
         return sum + price * h.shares;
       }, 0);
-      const cash = cashMap.get(uid) ?? 0;
+      const cash = p.cash_balance ?? 0;
       return {
-        user_id: uid,
+        user_id: p.id,
         date: today,
-        total_value: cash + invested,
-        cash_balance: cash,
-        invested_value: invested,
+        total_net_liquidity: cash + invested,
       };
     });
 
