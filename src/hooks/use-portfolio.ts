@@ -85,6 +85,7 @@ export const useExecuteTrade = () => {
       await refreshProfile();
       qc.invalidateQueries({ queryKey: ["holdings"] });
       qc.invalidateQueries({ queryKey: ["transactions"] });
+      qc.invalidateQueries({ queryKey: ["queued-orders"] });
     },
     [user, refreshProfile, qc]
   );

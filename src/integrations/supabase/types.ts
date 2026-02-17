@@ -178,6 +178,24 @@ export type Database = {
         }
         Relationships: []
       }
+      spy_daily_cache: {
+        Row: {
+          close_price: number
+          date: string
+          fetched_at: string
+        }
+        Insert: {
+          close_price: number
+          date: string
+          fetched_at?: string
+        }
+        Update: {
+          close_price?: number
+          date?: string
+          fetched_at?: string
+        }
+        Relationships: []
+      }
       stock_scores: {
         Row: {
           fundamentals: number | null
