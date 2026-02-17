@@ -44,6 +44,13 @@ export interface StockData {
   why_explanation: string | null;
 }
 
+export interface BatchPriceData {
+  current_price: number;
+  previous_close: number;
+  day_change_pct: number;
+  volume: number;
+}
+
 export interface SearchResult {
   ticker: string;
   name: string;
@@ -80,6 +87,21 @@ export const fetchStockData = async (ticker: string): Promise<StockData> => {
     const body = await res.text();
     throw new Error(`stock-data error ${res.status}: ${body}`);
   }
+  return res.json();
+};
+
+/** Fetch batch prices for multiple tickers */
+export const fetchBatchPrices = async (tickers: string[]): Promise<Record<string, BatchPriceData>> => {
+  if (!tickers.length) return {};
+  const res = await fetch(
+    `${FUNCTIONS_BASE}/stock-prices?tickers=${tickers.map(encodeURIComponent).join(",")}`,
+    {
+      headers: {
+        apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+      },
+    }
+  );
+  if (!res.ok) return {};
   return res.json();
 };
 

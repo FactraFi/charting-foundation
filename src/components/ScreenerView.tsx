@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { ArrowRight, DollarSign, Star, Layers, Search } from "lucide-react";
 import FactraScoreGauge from "@/components/FactraScoreGauge";
-import { useStockUniverse, useStockSearch, useStockData } from "@/hooks/use-stock-data";
-import type { StockData, StockScoreRow } from "@/lib/api";
+import { useStockUniverse, useStockSearch } from "@/hooks/use-stock-data";
+import { useBatchPrices } from "@/hooks/use-batch-prices";
+import type { StockData, StockScoreRow, BatchPriceData } from "@/lib/api";
 import { Skeleton } from "@/components/ui/skeleton";
 import CompanyLogo from "@/components/CompanyLogo";
 
@@ -24,14 +25,15 @@ interface ScreenerStock {
 /* ── Screener Card (simplified — fetches own price) ── */
 const ScreenerCard = ({
   stock,
+  priceData,
   onSelect,
   onPlaceOrder,
 }: {
   stock: ScreenerStock;
+  priceData?: BatchPriceData;
   onSelect: (ticker: string) => void;
   onPlaceOrder: (ticker: string) => void;
 }) => {
-  const { data: liveData } = useStockData(stock.ticker);
 
   return (
     <div className="bg-background border border-border rounded-2xl p-6 hover:border-primary/30 transition-all group hover:scale-[1.01] duration-300 flex flex-col h-full relative overflow-hidden">
@@ -53,11 +55,11 @@ const ScreenerCard = ({
 
       {/* Price */}
       <div className="flex items-baseline gap-3 mb-6 relative z-10">
-        {liveData ? (
+        {priceData ? (
           <>
-            <span className="text-3xl font-bold text-foreground tracking-tight">${liveData.current_price.toFixed(2)}</span>
-            <span className={`text-sm font-bold ${liveData.day_change_pct >= 0 ? 'text-primary' : 'text-destructive'}`}>
-              {liveData.day_change_pct > 0 ? '+' : ''}{liveData.day_change_pct}%
+            <span className="text-3xl font-bold text-foreground tracking-tight">${priceData.current_price.toFixed(2)}</span>
+            <span className={`text-sm font-bold ${priceData.day_change_pct >= 0 ? 'text-primary' : 'text-destructive'}`}>
+              {priceData.day_change_pct > 0 ? '+' : ''}{priceData.day_change_pct}%
             </span>
           </>
         ) : (
@@ -77,21 +79,21 @@ const ScreenerCard = ({
         </div>
         <div className="flex flex-col">
           <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider mb-1">Market Cap</span>
-          <span className="text-foreground font-bold">{liveData?.market_cap ?? '—'}</span>
+          <span className="text-foreground font-bold">—</span>
         </div>
         <div className="flex flex-col">
           <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider mb-1">P/E Ratio</span>
-          <span className="text-foreground font-bold">{liveData?.pe_ratio?.toFixed(1) ?? 'N/A'}</span>
+          <span className="text-foreground font-bold">—</span>
         </div>
         <div className="flex flex-col">
           <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider mb-1">Signal</span>
           <span className={`font-bold ${(stock.v_score ?? 0) >= 60 ? 'text-primary' : (stock.v_score ?? 0) >= 40 ? 'text-yellow-500' : 'text-destructive'}`}>
-            {liveData?.signal ?? stock.signal}
+            {stock.signal}
           </span>
         </div>
         <div className="flex flex-col">
           <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider mb-1">V-Score</span>
-          <span className="text-primary font-bold">{stock.v_score ?? (liveData?.v_score ?? '—')}</span>
+          <span className="text-primary font-bold">{stock.v_score ?? '—'}</span>
         </div>
       </div>
 
@@ -167,7 +169,7 @@ const ScreenerView = ({ onSelectStock, onTrade }: ScreenerViewProps) => {
   const { data: universe, isLoading: universeLoading } = useStockUniverse();
   const { data: searchResults } = useStockSearch(searchQuery, searchQuery.length >= 1);
 
-  // Convert universe to ScreenerStock format
+  // Convert universe to ScreenerStock format (same as before, just moved above batch call)
   const screenerStocks: ScreenerStock[] = (universe || []).map((s) => ({
     ticker: s.ticker,
     name: s.name || s.ticker,
@@ -188,6 +190,10 @@ const ScreenerView = ({ onSelectStock, onTrade }: ScreenerViewProps) => {
         signal: 'Pending',
       }))
     : screenerStocks;
+
+  // Batch fetch all prices in one request
+  const allTickers = displayStocks.map(s => s.ticker);
+  const { data: batchPrices } = useBatchPrices(allTickers, allTickers.length > 0);
 
   const getGroupedData = (key: 'industry' | 'sector') => {
     const groups: Record<string, ScreenerStock[]> = {};
@@ -224,6 +230,7 @@ const ScreenerView = ({ onSelectStock, onTrade }: ScreenerViewProps) => {
             <ScreenerCard
               key={stock.ticker}
               stock={stock}
+              priceData={batchPrices?.[stock.ticker]}
               onSelect={handleSelectStock}
               onPlaceOrder={handlePlaceOrder}
             />

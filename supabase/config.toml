@@ -23,3 +23,6 @@ verify_jwt = false
 
 [functions.snapshot-portfolio]
 verify_jwt = false
+
+[functions.stock-prices]
+verify_jwt = false
