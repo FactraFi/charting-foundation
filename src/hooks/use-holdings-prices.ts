@@ -43,7 +43,10 @@ export const useHoldingsWithPrices = (holdings: DbHolding[]): HoldingsWithPrices
 
     totalMarketValue += price * h.shares;
     totalCost += h.avg_cost * h.shares;
-    daysPnl += (price - prevClose) * h.shares;
+    // Use the higher of previous_close and avg_cost as baseline
+    // to prevent phantom losses for positions opened after market close
+    const baseline = Math.max(prevClose, h.avg_cost);
+    daysPnl += (price - baseline) * h.shares;
   }
 
   const totalReturn = totalMarketValue - totalCost;
