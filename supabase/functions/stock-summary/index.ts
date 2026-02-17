@@ -22,7 +22,7 @@ Risk: ${stock.risk ?? 'N/A'}/100, Sentiment: ${stock.sentiment ?? 'N/A'}/100
 P/E: ${stock.pe_ratio ?? 'N/A'}, Beta: ${stock.beta ?? 'N/A'}
 Analyst Rating: ${stock.analyst_rating ?? 'N/A'}/5
 
-Write a 25-word-max analyst summary covering fundamentals, momentum, and sentiment. Be specific and data-driven. No disclaimers.`;
+In 50 words or fewer, give a plain-English analyst takeaway: what is the investment case or concern for this stock right now? Focus on outlook, key drivers, and catalysts. Do NOT restate raw scores or numbers. No disclaimers.`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -33,7 +33,7 @@ Write a 25-word-max analyst summary covering fundamentals, momentum, and sentime
       body: JSON.stringify({
         model: "google/gemini-3-flash-preview",
         messages: [
-          { role: "system", content: "You are a concise equity analyst. Return only the summary text, nothing else." },
+          { role: "system", content: "You are a concise equity analyst. Provide actionable takeaways in plain English. Never restate raw scores or numbers the user can already see. Return only the summary text." },
           { role: "user", content: prompt },
         ],
         tools: [
@@ -45,7 +45,7 @@ Write a 25-word-max analyst summary covering fundamentals, momentum, and sentime
               parameters: {
                 type: "object",
                 properties: {
-                  summary: { type: "string", description: "25-word max analyst summary" },
+                  summary: { type: "string", description: "50-word max plain-English analyst takeaway focusing on outlook and key drivers" },
                 },
                 required: ["summary"],
                 additionalProperties: false,
