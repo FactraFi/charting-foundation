@@ -150,7 +150,7 @@ const AIView = () => {
   return (
     <div className="h-[calc(100vh-140px)] flex gap-6 animate-fade-in-up">
       {/* Left Sidebar: History */}
-      <div className="w-[40%] hidden lg:flex flex-col glass-panel rounded-2xl overflow-hidden border border-border">
+      <div className="w-[30%] hidden lg:flex flex-col glass-panel rounded-2xl overflow-hidden border border-border">
         <div className="p-4 border-b border-border bg-card flex justify-between items-center shrink-0">
           <h3 className="font-bold text-foreground flex items-center gap-2">
             <MessageSquare size={18} className="text-primary" /> History
@@ -189,7 +189,7 @@ const AIView = () => {
       </div>
 
       {/* Right Chat Area */}
-      <div className="flex-1 lg:w-[60%] flex flex-col glass-panel rounded-2xl overflow-hidden border border-border">
+      <div className="flex-1 lg:w-[70%] flex flex-col glass-panel rounded-2xl overflow-hidden border border-border">
         <div className="p-4 border-b border-border bg-card flex items-center gap-3 shrink-0">
           <div className="w-8 h-8 rounded bg-primary/10 flex items-center justify-center text-primary">
             <Bot size={18} />
