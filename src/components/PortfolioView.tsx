@@ -5,9 +5,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
+import { Badge } from "@/components/ui/badge";
 import {
   Briefcase, TrendingUp, TrendingDown, DollarSign, PieChart, Activity,
-  ArrowUpRight, ArrowDownRight, PackageOpen, MoreHorizontal, Shield, Clock
+  ArrowUpRight, ArrowDownRight, PackageOpen, MoreHorizontal, Shield, Clock, XCircle
 } from "lucide-react";
 import { useStockData } from "@/hooks/use-stock-data";
 import type { StockData } from "@/lib/api";
@@ -16,11 +17,16 @@ import { useAuth } from "@/contexts/AuthContext";
 import { usePortfolio, useTransactions, type DbHolding } from "@/hooks/use-portfolio";
 import { useHoldingsWithPrices } from "@/hooks/use-holdings-prices";
 import { usePortfolioHistory } from "@/hooks/use-portfolio-history";
+import { useStartOfDayLiquidity } from "@/hooks/use-start-of-day-liquidity";
+import { useQueuedOrders, useCancelOrder } from "@/hooks/use-orders";
+import { usePortfolioHealth } from "@/hooks/use-portfolio-health";
 import {
   PieChart as RePieChart, Pie, Cell, ResponsiveContainer, Tooltip,
   AreaChart, Area, XAxis, YAxis, CartesianGrid,
 } from "recharts";
 import { formatDistanceToNow, format } from "date-fns";
+
+const INITIAL_CAPITAL = 10000;
 
 const PIE_COLORS = [
   "hsl(155 100% 50%)",
@@ -103,17 +109,24 @@ const PortfolioView = ({ onSelectStock, onTrade }: PortfolioViewProps) => {
   const { data: holdings = [], isLoading } = usePortfolio();
   const { data: transactions = [] } = useTransactions(10);
   const [timePeriod, setTimePeriod] = useState<typeof TIME_PERIODS[number]>("1M");
-  const cashBalance = profile?.cash_balance ?? 10000;
+  const cashBalance = profile?.cash_balance ?? INITIAL_CAPITAL;
 
   const {
-    totalMarketValue, totalCost, daysPnl, totalReturn, isLoading: pricesLoading, stockDataMap,
+    totalMarketValue, stockDataMap, isLoading: pricesLoading,
   } = useHoldingsWithPrices(holdings);
 
   const { data: historyData = [] } = usePortfolioHistory(timePeriod);
+  const { data: startOfDayLiquidity = INITIAL_CAPITAL } = useStartOfDayLiquidity();
+  const { data: queuedOrders = [] } = useQueuedOrders();
+  const cancelOrder = useCancelOrder();
+  const { data: healthData } = usePortfolioHealth();
 
+  // Phase 2: KPI calculations
   const netLiquidity = cashBalance + totalMarketValue;
-  const daysPnlPct = netLiquidity - daysPnl !== 0 ? (daysPnl / (netLiquidity - daysPnl)) * 100 : 0;
-  const totalReturnPct = totalCost > 0 ? (totalReturn / totalCost) * 100 : 0;
+  const daysPnl = netLiquidity - startOfDayLiquidity;
+  const daysPnlPct = startOfDayLiquidity !== 0 ? (daysPnl / startOfDayLiquidity) * 100 : 0;
+  const totalReturn = netLiquidity - INITIAL_CAPITAL;
+  const totalReturnPct = (totalReturn / INITIAL_CAPITAL) * 100;
 
   const pieData = holdings.map((h) => {
     const stock = stockDataMap.get(h.ticker);
@@ -157,7 +170,7 @@ const PortfolioView = ({ onSelectStock, onTrade }: PortfolioViewProps) => {
             <div>
               <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">Day's P&L</p>
               <p className={`text-lg font-bold font-sans tabular-nums ${daysPnl >= 0 ? "text-primary" : "text-destructive"}`}>
-                ${daysPnl.toFixed(2)} <span className="text-xs">({daysPnlPct.toFixed(1)}%)</span>
+                {daysPnl >= 0 ? "+" : ""}${daysPnl.toFixed(2)} <span className="text-xs">({daysPnlPct >= 0 ? "+" : ""}{daysPnlPct.toFixed(1)}%)</span>
               </p>
             </div>
           </CardContent>
@@ -171,7 +184,7 @@ const PortfolioView = ({ onSelectStock, onTrade }: PortfolioViewProps) => {
             <div>
               <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">Total Return</p>
               <p className={`text-lg font-bold font-sans tabular-nums ${totalReturn >= 0 ? "text-primary" : "text-destructive"}`}>
-                ${totalReturn.toFixed(2)} <span className="text-xs">({totalReturnPct.toFixed(1)}%)</span>
+                {totalReturn >= 0 ? "+" : ""}${totalReturn.toFixed(2)} <span className="text-xs">({totalReturnPct >= 0 ? "+" : ""}{totalReturnPct.toFixed(1)}%)</span>
               </p>
             </div>
           </CardContent>
@@ -289,7 +302,7 @@ const PortfolioView = ({ onSelectStock, onTrade }: PortfolioViewProps) => {
                             <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
                           ))}
                         </Pie>
-                        <Tooltip contentStyle={{ background: "hsl(220 15% 7%)", border: "1px solid hsl(220 12% 14%)", borderRadius: 8, fontSize: 12 }} />
+                        <Tooltip contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 12 }} />
                       </RePieChart>
                     </ResponsiveContainer>
                   </div>
@@ -328,29 +341,36 @@ const PortfolioView = ({ onSelectStock, onTrade }: PortfolioViewProps) => {
                     <path
                       d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
                       fill="none"
-                      stroke="hsl(220 12% 14%)"
+                      stroke="hsl(var(--border))"
                       strokeWidth="3"
                     />
                     <path
                       d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
                       fill="none"
-                      stroke="hsl(155 100% 50% / 0.2)"
+                      stroke="hsl(var(--primary))"
                       strokeWidth="3"
-                      strokeDasharray="0, 100"
+                      strokeDasharray={`${healthData.healthScore ?? 0}, 100`}
+                      className="transition-all duration-700"
                     />
                   </svg>
                   <div className="absolute inset-0 flex items-center justify-center">
-                    <span className="text-xs font-bold text-muted-foreground">--</span>
+                    <span className="text-xs font-bold text-foreground">
+                      {healthData.healthScore !== null ? healthData.healthScore : "--"}
+                    </span>
                   </div>
                 </div>
                 <div className="flex-1 space-y-2">
                   <div className="flex justify-between text-xs">
                     <span className="text-muted-foreground">Beta</span>
-                    <span className="font-bold font-sans text-foreground">--</span>
+                    <span className="font-bold font-sans text-foreground">
+                      {healthData.beta !== null ? healthData.beta.toFixed(2) : "--"}
+                    </span>
                   </div>
                   <div className="flex justify-between text-xs">
                     <span className="text-muted-foreground">Sharpe Ratio</span>
-                    <span className="font-bold font-sans text-foreground">--</span>
+                    <span className="font-bold font-sans text-foreground">
+                      {healthData.sharpeRatio !== null ? healthData.sharpeRatio.toFixed(2) : "--"}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -358,6 +378,59 @@ const PortfolioView = ({ onSelectStock, onTrade }: PortfolioViewProps) => {
           </Card>
         </div>
       </div>
+
+      {/* Open Orders Section */}
+      {queuedOrders.length > 0 && (
+        <Card className="border-border">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-bold font-sans text-muted-foreground uppercase tracking-wider flex items-center gap-2">
+              <Clock size={14} /> Open Orders
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-0">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="font-sans font-bold">Ticker</TableHead>
+                  <TableHead className="font-sans font-bold">Side</TableHead>
+                  <TableHead className="text-right font-sans font-bold">Quantity</TableHead>
+                  <TableHead className="font-sans font-bold">Status</TableHead>
+                  <TableHead className="text-right font-sans font-bold">Action</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {queuedOrders.map((order) => (
+                  <TableRow key={order.id}>
+                    <TableCell className="font-bold font-sans text-foreground">{order.ticker}</TableCell>
+                    <TableCell>
+                      <Badge variant={order.side === "buy" ? "default" : "destructive"} className="text-[10px] uppercase">
+                        {order.side}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-right tabular-nums font-sans">{order.quantity}</TableCell>
+                    <TableCell>
+                      <Badge variant="secondary" className="text-[10px] border border-blue-500/30 text-blue-400 bg-blue-500/10">
+                        Queued for Open
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-7 px-2 text-destructive hover:text-destructive hover:bg-destructive/10"
+                        onClick={() => cancelOrder.mutate(order.id)}
+                        disabled={cancelOrder.isPending}
+                      >
+                        <XCircle size={14} className="mr-1" /> Cancel
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Bottom Row: Holdings + Recent Activity */}
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
