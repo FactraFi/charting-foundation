@@ -83,7 +83,7 @@ async function streamChat({
 const AIView = () => {
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const chatContainerRef = useRef<HTMLDivElement>(null);
   const isFirstRender = useRef(true);
 
   const {
@@ -105,7 +105,10 @@ const AIView = () => {
       isFirstRender.current = false;
       return;
     }
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    chatContainerRef.current?.scrollTo({
+      top: chatContainerRef.current.scrollHeight,
+      behavior: "smooth",
+    });
   }, [messages]);
 
   const handleSend = async (e: React.FormEvent) => {
@@ -239,7 +242,7 @@ const AIView = () => {
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar bg-background/50">
+        <div ref={chatContainerRef} className="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar bg-background/50">
           {messages.map((msg, idx) => (
             <div key={idx} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
               <div className={`max-w-[85%] p-4 rounded-2xl ${
@@ -265,7 +268,7 @@ const AIView = () => {
               </div>
             </div>
           )}
-          <div ref={messagesEndRef} />
+          
         </div>
 
         <form onSubmit={handleSend} className="p-4 bg-card border-t border-border flex gap-2 shrink-0">
