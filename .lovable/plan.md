@@ -1,19 +1,37 @@
 
 
-## Fix: Day's P&L Percentage Rounding to 0.0%
+## Fix: Remove Auto-Scroll in FactraAI Tab
 
-**Problem:** The Day's P&L shows `-0.0%` because the actual percentage (`-0.047%`) rounds to zero when displayed with only 1 decimal place (`toFixed(1)`). On a ~$10,000 account, small dollar changes produce very small percentages.
+**Problem:** The FactraAI chat tab auto-scrolls the page when messages load, pushing the navigation bar off-screen. Other tabs don't have this issue.
 
-**Solution:** Use 2 decimal places (`toFixed(2)`) for the P&L percentage on both screens, so `-0.047%` displays as `-0.05%` instead of `-0.0%`.
+**Cause:** A `useEffect` in `AIView.tsx` (lines 103-108) calls `messagesEndRef.current?.scrollIntoView()` whenever the `messages` array changes. `scrollIntoView` scrolls the entire page, not just the chat container.
+
+**Solution:** Replace `scrollIntoView` with a container-scoped `scrollTo` call so only the chat message list scrolls internally.
 
 ---
 
 ### Technical Details
 
+**File: `src/components/AIView.tsx`**
+
+1. Add a new ref: `const chatContainerRef = useRef<HTMLDivElement>(null);`
+2. Attach `chatContainerRef` to the scrollable chat container div (the one with class `overflow-y-auto` around line 220).
+3. Replace the `useEffect` scroll logic:
+
+```typescript
+// Before:
+messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+
+// After:
+chatContainerRef.current?.scrollTo({
+  top: chatContainerRef.current.scrollHeight,
+  behavior: "smooth",
+});
+```
+
+4. The `messagesEndRef` div at the bottom of messages can be removed since it's no longer needed.
+
 | File | Change |
 |------|--------|
-| `src/components/PortfolioView.tsx` (line 173) | Change `daysPnlPct.toFixed(1)` to `daysPnlPct.toFixed(2)` |
-| `src/components/DashboardView.tsx` (line 204) | Already uses `toFixed(2)` -- no change needed |
-
-Single-line fix in PortfolioView only.
+| `src/components/AIView.tsx` | Add `chatContainerRef`, attach to chat container, replace `scrollIntoView` with container `scrollTo`, remove unused `messagesEndRef` |
 
