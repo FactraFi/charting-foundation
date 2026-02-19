@@ -326,6 +326,11 @@ export type Database = {
         }
         Returns: undefined
       }
+      fill_queued_order: {
+        Args: { p_order_id: string; p_price: number }
+        Returns: string
+      }
+      rebuild_holdings_from_transactions: { Args: never; Returns: string }
     }
     Enums: {
       [_ in never]: never
