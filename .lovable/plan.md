@@ -1,96 +1,47 @@
 
 
-## Root Cause Analysis and Fix for Missing Holdings
+## Fix 4 Issues: Unused Imports, Missing Trade Buttons, Order Side Badge
 
-### What Happened
+### Issue 1: Add Buy/Sell Buttons to StockDetailView
 
-The `process-queued-orders` edge function ran this morning and marked 9 orders as **FILLED**, but it failed silently mid-execution -- it updated order statuses but **did not** create corresponding transactions or update holdings/cash. Here is the evidence:
+**Problem**: The `onTrade` prop is accepted but never destructured or used -- users cannot trade from the stock detail page.
 
-- **Holdings table**: completely empty for all users
-- **Orders table**: 9 orders from today are marked `FILLED` (across 2 users)
-- **Transactions table**: zero entries for today -- none of those "filled" orders produced a transaction
-- **Cash balances**: unchanged (e.g., user `2b4a7d28` still shows exactly $10,000, despite "filling" 11 shares)
-- **Edge function logs**: no logs available, suggesting the function either timed out or crashed without logging
+**Fix in `src/components/StockDetailView.tsx`**:
+- Line 122: Destructure `onTrade` from props (currently only `stock` and `onBack` are destructured)
+- Add two trade buttons (Buy / Sell) next to the Watchlist and Refresh buttons in the MarkerSection area. Since MarkerSection doesn't accept an `onTrade` prop, the buttons will be added directly in StockDetailView, right below the MarkerSection component (line 145).
 
-The function processes each order as a sequence of independent database calls (read profile, update cash, upsert holding, insert transaction, update order status). Because these are **not wrapped in a database transaction**, a partial failure leaves the data in an inconsistent state. In this case, the order status was updated to FILLED but the actual trade operations (cash deduction, holding creation, transaction logging) were lost.
+The buttons will be styled consistently with the app's design system using the primary color for Buy and destructive for Sell.
 
-Additionally, prior holdings from Feb 17-18 that were created through the `execute_trade` RPC (which does work correctly) are also gone. This means the batch processor likely **deleted existing holdings** during a failed sell-flow path or the holdings were wiped by another mechanism.
+### Issue 2: Remove Unused Imports in ModernNavbar
 
----
+**Problem**: `Settings`, `User`, `CreditCard` are imported but never used.
 
-### The Fix (3 Parts)
+**Fix in `src/components/ModernNavbar.tsx`**:
+- Line 5: Remove `Settings`, `User`, `CreditCard` from the lucide-react import statement.
 
-### Part 1: Restore missing holdings from transaction history
+### Issue 3: Remove Unused Import in ScreenerView
 
-Create a new database function `rebuild_holdings_from_transactions` that:
-- Reads all transactions for every user
-- Computes net shares per ticker (summing buys, subtracting sells)
-- Computes weighted average cost for remaining shares
-- Replaces the holdings table contents with the correct calculated values
-- Recalculates correct cash balances (starting from $10,000 base)
+**Problem**: `Star` is imported but never used.
 
-This will be run once as a data recovery step, then kept available as a safety net.
+**Fix in `src/components/ScreenerView.tsx`**:
+- Line 2: Remove `Star` from the lucide-react import statement.
 
-### Part 2: Rewrite `process-queued-orders` to use an atomic database function
+### Issue 4: Fix Order Side Badge Case Mismatch in PortfolioView
 
-Replace the current edge function's multi-step JS logic with a single **database function** called `fill_queued_order` that runs inside a PostgreSQL transaction. This ensures all-or-nothing execution:
+**Problem**: `order.side === "buy"` fails because the database stores sides as uppercase ("BUY"/"SELL").
 
-```text
-BEGIN transaction
-  1. Verify order is still QUEUED
-  2. Fetch user cash balance
-  3. Validate funds (buy) or shares (sell)
-  4. Update cash balance
-  5. Upsert/delete holding
-  6. Insert transaction record
-  7. Update order status to FILLED
-COMMIT (or ROLLBACK on any failure -> mark FAILED)
-```
-
-The edge function will then simply:
-1. Fetch prices for all QUEUED order tickers
-2. Call `fill_queued_order(order_id, price)` for each order
-3. Return results
-
-If any step fails, the entire order rolls back and is marked FAILED -- no more phantom "FILLED" orders with no actual trade.
-
-### Part 3: Add error logging and safeguards
-
-- Add `console.log` statements in the edge function to track each order's processing
-- Add a pre-check: if the function detects orders that were marked FILLED but have no matching transaction, log a warning
+**Fix in `src/components/PortfolioView.tsx`**:
+- Line 406: Change `order.side === "buy"` to `order.side.toUpperCase() === "BUY"` so the badge correctly shows green for buy orders and red for sell orders.
 
 ---
 
-### Technical Details
+### Technical Summary
 
-**New database function: `fill_queued_order(p_order_id uuid, p_price numeric)`**
-
-A SECURITY DEFINER PL/pgSQL function that:
-- Runs in a single transaction (automatic in PL/pgSQL)
-- Looks up the order, validates status is QUEUED
-- Performs the buy/sell logic (same as `execute_trade` but using service-level access)
-- Inserts a transaction record
-- Updates order status to FILLED
-- On any exception, marks order FAILED and re-raises
-
-**Modified file: `supabase/functions/process-queued-orders/index.ts`**
-
-Simplified to:
-1. Fetch all QUEUED orders
-2. Batch-fetch prices from Yahoo
-3. For each order, call `supabase.rpc('fill_queued_order', { p_order_id, p_price })`
-4. Collect results and return summary
-
-**Data recovery: one-time SQL to rebuild holdings**
-
-A database function that replays all transactions to reconstruct correct holdings and cash balances for every user.
-
-### Files Changed
-
-| File / Resource | Change |
-|------|--------|
-| Database migration | Create `fill_queued_order` function (atomic order processing) |
-| Database migration | Create `rebuild_holdings_from_transactions` function (data recovery) |
-| `supabase/functions/process-queued-orders/index.ts` | Simplify to price-fetch + RPC calls instead of manual multi-step logic |
-| One-time SQL execution | Run `rebuild_holdings_from_transactions()` to restore all missing data |
+| File | Line(s) | Change |
+|------|---------|--------|
+| `src/components/StockDetailView.tsx` | 122 | Destructure `onTrade` from props |
+| `src/components/StockDetailView.tsx` | ~145 | Add Buy/Sell buttons below MarkerSection |
+| `src/components/ModernNavbar.tsx` | 5 | Remove `Settings`, `User`, `CreditCard` imports |
+| `src/components/ScreenerView.tsx` | 2 | Remove `Star` import |
+| `src/components/PortfolioView.tsx` | 406 | Case-insensitive side comparison |
 
