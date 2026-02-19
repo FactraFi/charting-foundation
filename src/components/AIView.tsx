@@ -251,7 +251,7 @@ const AIView = () => {
                   : "bg-secondary text-foreground/90 rounded-tl-none border border-border"
               }`}>
                 {msg.role === "assistant" ? (
-                  <div className="text-sm prose prose-sm prose-invert max-w-none leading-relaxed">
+                  <div className="text-sm prose prose-sm prose-invert max-w-none leading-relaxed [&_h1]:text-primary [&_h2]:text-primary [&_h3]:text-primary [&_strong]:text-primary [&_strong]:font-semibold [&_li]:marker:text-primary [&_ul]:space-y-1 [&_ol]:space-y-1 [&_p]:mb-2 [&_p:last-child]:mb-0 [&_h2]:text-base [&_h2]:font-bold [&_h2]:mb-1 [&_h2]:mt-2 [&_h3]:text-sm [&_h3]:font-bold [&_h3]:mb-1 [&_h3]:mt-2">
                     <ReactMarkdown>{msg.content}</ReactMarkdown>
                   </div>
                 ) : (
