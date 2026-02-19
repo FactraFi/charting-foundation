@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import {
   LayoutDashboard, Search, Cpu, Workflow, Briefcase, Bell,
-  Settings, Terminal, User, CreditCard, LogOut, Menu, X
+  Terminal, LogOut, Menu, X
 } from "lucide-react";
 import { useStockSearch } from "@/hooks/use-stock-data";
 import CompanyLogo from "@/components/CompanyLogo";
