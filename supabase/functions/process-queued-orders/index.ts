@@ -6,10 +6,6 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-interface PriceResult {
-  current_price: number;
-}
-
 async function fetchPrice(ticker: string): Promise<number> {
   const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(ticker)}?interval=1d&range=1d`;
   const res = await fetch(url, { headers: { "User-Agent": "Mozilla/5.0" } });
@@ -31,7 +27,7 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    // Fetch all QUEUED orders
+    // 1. Fetch all QUEUED orders
     const { data: orders, error: fetchErr } = await supabase
       .from("orders")
       .select("*")
@@ -40,136 +36,90 @@ Deno.serve(async (req) => {
 
     if (fetchErr) throw fetchErr;
     if (!orders || orders.length === 0) {
+      console.log("No queued orders found");
       return new Response(JSON.stringify({ message: "No queued orders" }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // Fetch prices for all unique tickers
+    console.log(`Found ${orders.length} queued orders`);
+
+    // 2. Integrity check: warn about phantom FILLED orders (no matching transaction)
+    const { data: phantomOrders } = await supabase
+      .from("orders")
+      .select("id, ticker, side, quantity, created_at")
+      .eq("status", "FILLED");
+
+    if (phantomOrders && phantomOrders.length > 0) {
+      const { count: txCount } = await supabase
+        .from("transactions")
+        .select("*", { count: "exact", head: true });
+
+      if (txCount === 0 && phantomOrders.length > 0) {
+        console.warn(
+          `⚠️ INTEGRITY WARNING: ${phantomOrders.length} FILLED orders exist but 0 transactions found. Possible prior data corruption.`
+        );
+      }
+    }
+
+    // 3. Batch-fetch prices for all unique tickers
     const tickers = [...new Set(orders.map((o: any) => o.ticker))];
     const priceMap = new Map<string, number>();
     await Promise.allSettled(
       tickers.map(async (t) => {
         try {
-          priceMap.set(t, await fetchPrice(t));
+          const price = await fetchPrice(t);
+          priceMap.set(t, price);
+          console.log(`Price for ${t}: $${price}`);
         } catch (e) {
           console.error(`Price fetch failed for ${t}:`, e);
         }
       })
     );
 
+    // 4. Process each order via atomic RPC
     let filled = 0;
     let failed = 0;
+    const results: { orderId: string; ticker: string; result: string }[] = [];
 
     for (const order of orders) {
       const price = priceMap.get(order.ticker);
       if (!price) {
-        // Can't get price, mark failed
+        console.log(`No price for ${order.ticker}, marking order ${order.id} FAILED`);
         await supabase.from("orders").update({ status: "FAILED" }).eq("id", order.id);
         failed++;
+        results.push({ orderId: order.id, ticker: order.ticker, result: "FAILED: no price" });
         continue;
       }
 
-      // Fetch user's current cash and holdings
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("cash_balance")
-        .eq("id", order.user_id)
-        .single();
+      console.log(`Processing order ${order.id}: ${order.side} ${order.quantity} ${order.ticker} @ $${price}`);
 
-      if (!profile) {
-        await supabase.from("orders").update({ status: "FAILED" }).eq("id", order.id);
-        failed++;
-        continue;
-      }
-
-      const total = order.quantity * price;
-
-      if (order.side === "buy") {
-        // Overdraft check
-        if (profile.cash_balance < total) {
-          await supabase.from("orders").update({ status: "FAILED" }).eq("id", order.id);
-          failed++;
-          continue;
-        }
-
-        // Deduct cash
-        await supabase
-          .from("profiles")
-          .update({ cash_balance: profile.cash_balance - total })
-          .eq("id", order.user_id);
-
-        // Upsert holding
-        const { data: existing } = await supabase
-          .from("holdings")
-          .select("id, shares, avg_cost")
-          .eq("user_id", order.user_id)
-          .eq("ticker", order.ticker)
-          .maybeSingle();
-
-        if (existing) {
-          const newShares = existing.shares + order.quantity;
-          const newAvg = (existing.avg_cost * existing.shares + total) / newShares;
-          await supabase
-            .from("holdings")
-            .update({ shares: newShares, avg_cost: newAvg, updated_at: new Date().toISOString() })
-            .eq("id", existing.id);
-        } else {
-          await supabase.from("holdings").insert({
-            user_id: order.user_id,
-            ticker: order.ticker,
-            shares: order.quantity,
-            avg_cost: price,
-          });
-        }
-      } else if (order.side === "sell") {
-        // Check shares
-        const { data: holding } = await supabase
-          .from("holdings")
-          .select("id, shares")
-          .eq("user_id", order.user_id)
-          .eq("ticker", order.ticker)
-          .maybeSingle();
-
-        if (!holding || holding.shares < order.quantity) {
-          await supabase.from("orders").update({ status: "FAILED" }).eq("id", order.id);
-          failed++;
-          continue;
-        }
-
-        // Add cash
-        await supabase
-          .from("profiles")
-          .update({ cash_balance: profile.cash_balance + total })
-          .eq("id", order.user_id);
-
-        const newShares = holding.shares - order.quantity;
-        if (newShares <= 0) {
-          await supabase.from("holdings").delete().eq("id", holding.id);
-        } else {
-          await supabase
-            .from("holdings")
-            .update({ shares: newShares, updated_at: new Date().toISOString() })
-            .eq("id", holding.id);
-        }
-      }
-
-      // Log transaction
-      await supabase.from("transactions").insert({
-        user_id: order.user_id,
-        ticker: order.ticker,
-        type: order.side,
-        shares: order.quantity,
-        price: price,
+      const { data: rpcResult, error: rpcError } = await supabase.rpc("fill_queued_order", {
+        p_order_id: order.id,
+        p_price: price,
       });
 
-      // Mark filled
-      await supabase.from("orders").update({ status: "FILLED" }).eq("id", order.id);
-      filled++;
+      if (rpcError) {
+        console.error(`Order ${order.id} RPC error:`, rpcError.message);
+        failed++;
+        results.push({ orderId: order.id, ticker: order.ticker, result: `FAILED: ${rpcError.message}` });
+      } else {
+        const status = rpcResult as string;
+        console.log(`Order ${order.id} result: ${status}`);
+        if (status === "FILLED") {
+          filled++;
+        } else {
+          failed++;
+        }
+        results.push({ orderId: order.id, ticker: order.ticker, result: status });
+      }
     }
 
+    const summary = `Processed ${orders.length} orders: ${filled} filled, ${failed} failed`;
+    console.log(summary);
+
     return new Response(
-      JSON.stringify({ message: `Processed: ${filled} filled, ${failed} failed` }),
+      JSON.stringify({ message: summary, results }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (err) {
