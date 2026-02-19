@@ -403,7 +403,7 @@ const PortfolioView = ({ onSelectStock, onTrade }: PortfolioViewProps) => {
                   <TableRow key={order.id}>
                     <TableCell className="font-bold font-sans text-foreground">{order.ticker}</TableCell>
                     <TableCell>
-                      <Badge variant={order.side === "buy" ? "default" : "destructive"} className="text-[10px] uppercase">
+                      <Badge variant={order.side.toUpperCase() === "BUY" ? "default" : "destructive"} className="text-[10px] uppercase">
                         {order.side}
                       </Badge>
                     </TableCell>

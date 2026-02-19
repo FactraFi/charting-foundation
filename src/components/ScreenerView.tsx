@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ArrowRight, DollarSign, Star, Layers, Search } from "lucide-react";
+import { ArrowRight, DollarSign, Layers, Search } from "lucide-react";
 import FactraScoreGauge from "@/components/FactraScoreGauge";
 import { useStockUniverse, useStockSearch } from "@/hooks/use-stock-data";
 import { useBatchPrices } from "@/hooks/use-batch-prices";
