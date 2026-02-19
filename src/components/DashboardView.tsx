@@ -119,7 +119,9 @@ const DashboardView = ({ setActiveTab, onSelectStock, onTrade }: DashboardViewPr
   const [markerType, setMarkerType] = useState('technical');
   const [isMarkersDropdownOpen, setIsMarkersDropdownOpen] = useState(false);
   const markersDropdownRef = useRef<HTMLDivElement>(null);
-  const [activeTicker, setActiveTicker] = useState('NVDA');
+  const [activeTicker, setActiveTicker] = useState(
+    () => localStorage.getItem('factrafi-active-ticker') || 'NVDA'
+  );
 
   // Hero search
   const [isSearchOpen, setIsSearchOpen] = useState(false);
@@ -142,6 +144,7 @@ const DashboardView = ({ setActiveTab, onSelectStock, onTrade }: DashboardViewPr
 
   const handleStockSelect = (ticker: string) => {
     setActiveTicker(ticker);
+    localStorage.setItem('factrafi-active-ticker', ticker);
     setIsSearchOpen(false);
     setHeroSearchQuery('');
   };
