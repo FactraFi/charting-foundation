@@ -125,13 +125,22 @@ const PillarCard = ({ index, label, score, bullets, compact }: {
 const StockDetailView = ({ stock, onBack, onTrade }: StockDetailViewProps) => {
   const { data: whyScore, isLoading: whyLoading } = useWhyScore(stock);
 
-  const vScoreHistory = Array.from({ length: 20 }).map((_, i) => ({
-    name: `Day ${i}`,
-    Fundamentals: (stock.fundamentals ?? 50) + Math.random() * 20 - 10,
-    Momentum: (stock.momentum ?? 50) + Math.random() * 20 - 10,
-    Risk: (stock.risk ?? 50) + Math.random() * 20 - 10,
-    Sentiment: (stock.sentiment ?? 50) + Math.random() * 20 - 10,
-  }));
+  const { data: scoreHistory, isLoading: historyLoading } = useScoreHistory(stock.ticker);
+
+  const vScoreHistory = scoreHistory && scoreHistory.length > 0
+    ? scoreHistory
+    : Array.from({ length: 20 }).map((_, i) => {
+        const d = new Date();
+        d.setDate(d.getDate() - (19 - i));
+        return {
+          name: d.toLocaleDateString("en-US", { month: "short", day: "numeric" }),
+          date: d.toISOString().split("T")[0],
+          Fundamentals: stock.fundamentals ?? 50,
+          Momentum: stock.momentum ?? 50,
+          Risk: stock.risk ?? 50,
+          Sentiment: stock.sentiment ?? 50,
+        };
+      });
 
   const pillars = [
     { key: "fundamentals", label: "Fundamentals", desc: "Earnings & financial health.", score: stock.fundamentals },
