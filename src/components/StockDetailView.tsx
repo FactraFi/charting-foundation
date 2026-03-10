@@ -187,17 +187,21 @@ const StockDetailView = ({ stock, onBack, onTrade }: StockDetailViewProps) => {
           </div>
 
           {/* Pillar Cards — 4 in a row on desktop */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 lg:mt-0 mt-4 relative z-10">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 lg:mt-0 mt-4 relative z-10 flex-1">
             {pillars.map((p) => (
-              <div key={p.key} className="bg-background border border-border p-2.5 rounded-lg space-y-1 hover:border-primary/30 transition-colors relative overflow-hidden group">
+              <div key={p.key} className="bg-background border border-border p-2.5 rounded-lg hover:border-primary/30 transition-colors relative overflow-hidden group flex flex-col justify-between h-full">
                 <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
-                <div className="text-[9px] uppercase text-muted-foreground font-bold tracking-wider relative z-10">{p.label}</div>
-                <div className="flex items-baseline gap-1 relative z-10">
-                  <span className="text-2xl font-bold text-primary">{p.score ?? '—'}</span>
-                  <span className="text-[9px] text-muted-foreground">/100</span>
+                <div className="space-y-1 relative z-10">
+                  <div className="text-[9px] uppercase text-muted-foreground font-bold tracking-wider">{p.label}</div>
+                  <div className="flex items-baseline gap-1">
+                    <span className="text-2xl font-bold text-primary">{p.score ?? '—'}</span>
+                    <span className="text-[9px] text-muted-foreground">/100</span>
+                  </div>
                 </div>
-                <div className="text-primary text-[9px] font-bold uppercase relative z-10">{getPillarLabel(p.score, p.isRisk)}</div>
-                <div className="text-[8px] text-muted-foreground leading-relaxed relative z-10">{p.desc}</div>
+                <div className="relative z-10 mt-auto">
+                  <div className="text-primary text-[9px] font-bold uppercase">{getPillarLabel(p.score, p.isRisk)}</div>
+                  <div className="text-[8px] text-muted-foreground leading-relaxed">{p.desc}</div>
+                </div>
               </div>
             ))}
           </div>
