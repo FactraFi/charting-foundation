@@ -22,7 +22,7 @@ interface DashboardViewProps {
 }
 
 /* ── TradingView Chart Widget ────────────────────────── */
-const TradingViewChart = ({ symbol }: { symbol: string }) => {
+const TradingViewChart = React.forwardRef<HTMLDivElement, { symbol: string }>(({ symbol }, ref) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const chartId = `tv_dashboard_${symbol}`;
 
