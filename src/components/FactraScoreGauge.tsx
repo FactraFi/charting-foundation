@@ -68,7 +68,7 @@ const FactraScoreGauge = React.forwardRef<HTMLDivElement, FactraScoreGaugeProps>
     const color = score >= 60 ? 'hsl(var(--primary))' : score >= 40 ? '#EAB308' : 'hsl(var(--destructive))';
 
     return (
-      <div className="relative w-12 h-12 flex items-center justify-center">
+      <div ref={ref} className="relative w-12 h-12 flex items-center justify-center">
         <svg className="transform -rotate-90 w-full h-full">
           <circle cx="24" cy="24" r={radius} stroke="hsl(var(--border))" strokeWidth={stroke} fill="transparent" />
           <circle cx="24" cy="24" r={radius} stroke={color} strokeWidth={stroke} fill="transparent" strokeDasharray={circumference} strokeDashoffset={strokeDashoffset} strokeLinecap="round" />
