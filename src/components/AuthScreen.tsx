@@ -39,7 +39,7 @@ const AuthScreen = () => {
         const { error: err } = await signUp(email, password, name);
         if (err) { setError(err); return; }
         // Show check-email message for email confirmation
-        setResetSent(true);
+        setConfirmationSent(true);
         return;
       }
 
