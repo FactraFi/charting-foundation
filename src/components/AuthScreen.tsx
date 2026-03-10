@@ -165,7 +165,7 @@ const AuthScreen = () => {
           )}
 
           {/* Footer */}
-          {!resetSent && (
+          {!confirmationSent && (
             <div className="text-center text-sm text-muted-foreground">
               {authView === 'login' ? "Don't have an account? " : authView === 'signup' ? "Already have an account? " : "Remember your password? "}
               <button onClick={authView === 'forgot' ? () => setAuthView('login') : toggleView}
