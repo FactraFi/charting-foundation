@@ -112,14 +112,16 @@ const WhyScoreSkeleton = () => (
   </div>
 );
 
-const PillarCard = ({ index, label, score, bullets, compact }: {
+import React from "react";
+
+const PillarCard = React.forwardRef<HTMLDivElement, {
   index: string;
   label: string;
   score: number | null;
   bullets: { label: string; text: string }[];
   compact?: boolean;
-}) => (
-  <div className={`rounded-lg bg-foreground/[0.02] border border-foreground/[0.05] ${compact ? 'p-2.5' : 'p-4'}`}>
+}>(({ index, label, score, bullets, compact }, ref) => (
+  <div ref={ref} className={`rounded-lg bg-foreground/[0.02] border border-foreground/[0.05] ${compact ? 'p-2.5' : 'p-4'}`}>
     <h4 className={`text-primary font-bold flex items-center gap-1.5 font-sans ${compact ? 'text-xs mb-1.5' : 'text-lg mb-3'}`}>
       <span className="opacity-50">{index}.</span> {label} ({score ?? '—'}/100)
     </h4>
@@ -132,7 +134,8 @@ const PillarCard = ({ index, label, score, bullets, compact }: {
       ))}
     </ul>
   </div>
-);
+));
+PillarCard.displayName = "PillarCard";
 
 /* ── Main Component ──────────────────────────────────── */
 const StockDetailView = ({ stock, onBack, onTrade }: StockDetailViewProps) => {
