@@ -117,18 +117,14 @@ const PortfolioView = ({ onSelectStock, onTrade }: PortfolioViewProps) => {
   } = useHoldingsWithPrices(holdings);
 
   const { data: historyData = [] } = usePortfolioHistory(timePeriod);
-  const { data: startOfDayLiquidity } = useStartOfDayLiquidity();
+  const { data: xirr } = usePortfolioXirr(cashBalance + totalMarketValue);
   const { data: queuedOrders = [] } = useQueuedOrders();
   const cancelOrder = useCancelOrder();
   const { data: healthData } = usePortfolioHealth();
 
-  // Phase 2: KPI calculations
+  // KPI calculations
   const netLiquidity = cashBalance + totalMarketValue;
-  const sodLiq = startOfDayLiquidity ?? null;
-  const daysPnl = sodLiq != null ? netLiquidity - sodLiq : 0;
-  const daysPnlPct = sodLiq != null && sodLiq !== 0 ? (daysPnl / sodLiq) * 100 : 0;
-  const totalReturn = netLiquidity - INITIAL_CAPITAL;
-  const totalReturnPct = (totalReturn / INITIAL_CAPITAL) * 100;
+  const { pnl: portfolioPnl, pct: portfolioPnlPct } = computePortfolioPnl(netLiquidity);
 
   const pieData = holdings.map((h) => {
     const stock = stockDataMap.get(h.ticker);
