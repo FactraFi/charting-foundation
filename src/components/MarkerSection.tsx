@@ -74,18 +74,18 @@ const MarkerSection = ({ stock, onBack, onTrade }: MarkerSectionProps) => {
     <div className="bg-background border border-border rounded-xl p-6 hover:border-primary/30 transition-all relative overflow-hidden group">
       <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
 
-      <div className="flex items-start gap-8 relative z-10 flex-wrap lg:flex-nowrap">
-        {/* Left Side: Ticker Info */}
-        <div className="flex items-start gap-4 min-w-[400px]">
+      <div className="flex items-start gap-6 relative z-10 flex-wrap lg:flex-nowrap">
+        {/* Left Column: Ticker / Price / About */}
+        <div className="flex items-start gap-4 min-w-[280px] flex-[2]">
           <button onClick={onBack} className="text-muted-foreground hover:text-foreground transition-colors mt-2">
             <ChevronLeft size={24} />
           </button>
-          <div className="w-16 h-16 rounded-full bg-secondary flex items-center justify-center text-lg font-bold text-foreground border border-border shadow-md overflow-hidden">
-            <CompanyLogo ticker={stock.ticker} size={64} className="rounded-full object-cover" />
+          <div className="w-14 h-14 rounded-full bg-secondary flex items-center justify-center text-lg font-bold text-foreground border border-border shadow-md overflow-hidden shrink-0">
+            <CompanyLogo ticker={stock.ticker} size={56} className="rounded-full object-cover" />
           </div>
           <div className="flex-1">
             <div className="flex items-center gap-3 mb-2">
-              <div className="text-4xl font-bold text-foreground tracking-tight">{stock.ticker}</div>
+              <div className="text-3xl font-bold text-foreground tracking-tight">{stock.ticker}</div>
               {onTrade && (
                 <>
                   <button
@@ -104,26 +104,38 @@ const MarkerSection = ({ stock, onBack, onTrade }: MarkerSectionProps) => {
               )}
             </div>
 
-            <div className="flex items-baseline gap-3 mb-4">
-              <span className="text-4xl font-bold text-foreground tracking-tight">${stock.current_price.toFixed(2)}</span>
-              <span className={`text-base font-bold px-2.5 py-1 rounded ${stock.day_change_pct >= 0 ? 'bg-primary/20 text-primary' : 'bg-destructive/20 text-destructive'}`}>
+            <div className="flex items-baseline gap-3 mb-3">
+              <span className="text-3xl font-bold text-foreground tracking-tight">${stock.current_price.toFixed(2)}</span>
+              <span className={`text-sm font-bold px-2 py-0.5 rounded ${stock.day_change_pct >= 0 ? 'bg-primary/20 text-primary' : 'bg-destructive/20 text-destructive'}`}>
                 {stock.day_change_pct > 0 ? '+' : ''}{stock.day_change_pct}%
               </span>
             </div>
 
-            <div className="text-xs text-muted-foreground leading-relaxed max-w-[350px]">
-              <span className="font-bold text-foreground underline underline-offset-2">Summary:</span>{' '}
-              {summaryLoading ? (
-                <span className="italic text-muted-foreground">Generating summary...</span>
-              ) : (
-                <span>{summary ?? `${stock.name} — ${stock.sector} / ${stock.industry}. Signal: ${stock.signal}`}</span>
-              )}
+            <div className="text-xs text-muted-foreground leading-relaxed">
+              <span className="font-bold text-foreground underline underline-offset-2">About:</span>{' '}
+              <span className="line-clamp-3">
+                {stock.description
+                  ? stock.description
+                  : `${stock.name} — ${stock.sector} / ${stock.industry}`}
+              </span>
             </div>
           </div>
         </div>
 
-        {/* Right Side: Markers */}
-        <div className="max-w-[380px] w-full border-l border-border pl-8">
+        {/* Middle Column: AI Summary */}
+        <div className="flex-[1.5] border-l border-border pl-6 min-w-[200px]">
+          <div className="text-xs text-muted-foreground leading-relaxed">
+            <span className="font-bold text-foreground underline underline-offset-2">Summary:</span>{' '}
+            {summaryLoading ? (
+              <span className="italic text-muted-foreground">Generating summary...</span>
+            ) : (
+              <span>{summary ?? `${stock.name} — ${stock.sector} / ${stock.industry}. Signal: ${stock.signal}`}</span>
+            )}
+          </div>
+        </div>
+
+        {/* Right Column: Markers (pushed right) */}
+        <div className="w-[420px] shrink-0 border-l border-border pl-6 ml-auto">
           <div className="relative mb-4">
             <button
               onClick={() => setIsDropdownOpen(!isDropdownOpen)}
