@@ -151,28 +151,15 @@ const ModernNavbar = ({ onLogout }: NavbarProps) => {
                 onClick={() => setShowNotifications(!showNotifications)}
               >
                 <Bell size={20} />
-                <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-primary rounded-full border border-background animate-pulse" />
               </button>
 
               {showNotifications && (
                 <div className="absolute top-full right-0 mt-2 w-80 bg-card border border-border rounded-xl shadow-2xl overflow-hidden z-50 animate-fade-in-up">
-                  <div className="p-3 border-b border-border flex justify-between items-center">
+                  <div className="p-3 border-b border-border">
                     <span className="text-sm font-bold text-foreground">Notifications</span>
-                    <span className="text-[10px] text-primary cursor-pointer hover:underline">Mark all read</span>
                   </div>
-                  <div className="max-h-64 overflow-y-auto">
-                    {NOTIFICATIONS.map(notif => (
-                      <div key={notif.id} className="p-3 hover:bg-foreground/5 border-b border-border last:border-0 cursor-pointer">
-                        <div className="flex gap-3">
-                          <div className={`w-2 h-2 mt-1.5 rounded-full shrink-0 ${notif.type === 'success' ? 'bg-primary' : 'bg-info'}`} />
-                          <div>
-                            <h4 className="text-sm font-medium text-foreground">{notif.title}</h4>
-                            <p className="text-xs text-muted-foreground mt-0.5">{notif.message}</p>
-                            <span className="text-[10px] text-muted-foreground/60 mt-2 block">{notif.time}</span>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
+                  <div className="p-8 text-center text-sm text-muted-foreground">
+                    No notifications yet
                   </div>
                 </div>
               )}

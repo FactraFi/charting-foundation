@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+// React is imported below for forwardRef in PillarCard
 import {
   Activity, DollarSign, TrendingUp, Briefcase, Zap, Lock, Sparkles
 } from "lucide-react";

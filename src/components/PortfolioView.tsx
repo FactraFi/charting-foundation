@@ -171,7 +171,7 @@ const PortfolioView = ({ onSelectStock, onTrade }: PortfolioViewProps) => {
             <div>
               <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">Day's P&L</p>
               <p className={`text-lg font-bold font-sans tabular-nums ${daysPnl >= 0 ? "text-primary" : "text-destructive"}`}>
-                {daysPnl >= 0 ? "+" : ""}${daysPnl.toFixed(2)} <span className="text-xs">({daysPnlPct >= 0 ? "+" : ""}{daysPnlPct.toFixed(2)}%)</span>
+                {sodLiq != null ? `${daysPnl >= 0 ? "+" : ""}$${daysPnl.toFixed(2)}` : "--"} {sodLiq != null && <span className="text-xs">({daysPnlPct >= 0 ? "+" : ""}{daysPnlPct.toFixed(2)}%)</span>}
               </p>
             </div>
           </CardContent>
