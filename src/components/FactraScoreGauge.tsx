@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import { Loader2 } from "lucide-react";
 
 interface FactraScoreGaugeProps {
@@ -7,7 +7,7 @@ interface FactraScoreGaugeProps {
   minimal?: boolean;
 }
 
-const FactraScoreGauge = ({ score, size = "normal", minimal = false }: FactraScoreGaugeProps) => {
+const FactraScoreGauge = React.forwardRef<HTMLDivElement, FactraScoreGaugeProps>(({ score, size = "normal", minimal = false }, ref) => {
   const [displayScore, setDisplayScore] = useState(0);
   const [wave, setWave] = useState(0);
   const timeRef = useRef(0);
@@ -68,7 +68,7 @@ const FactraScoreGauge = ({ score, size = "normal", minimal = false }: FactraSco
     const color = score >= 60 ? 'hsl(var(--primary))' : score >= 40 ? '#EAB308' : 'hsl(var(--destructive))';
 
     return (
-      <div className="relative w-12 h-12 flex items-center justify-center">
+      <div ref={ref} className="relative w-12 h-12 flex items-center justify-center">
         <svg className="transform -rotate-90 w-full h-full">
           <circle cx="24" cy="24" r={radius} stroke="hsl(var(--border))" strokeWidth={stroke} fill="transparent" />
           <circle cx="24" cy="24" r={radius} stroke={color} strokeWidth={stroke} fill="transparent" strokeDasharray={circumference} strokeDashoffset={strokeDashoffset} strokeLinecap="round" />
@@ -85,7 +85,7 @@ const FactraScoreGauge = ({ score, size = "normal", minimal = false }: FactraSco
   const baseTickLength = isLarge ? 5 : isMedium ? 4 : 5;
 
   return (
-    <div className={`relative ${containerSize} flex items-center justify-center`}>
+    <div ref={ref} className={`relative ${containerSize} flex items-center justify-center`}>
       <div
         className="absolute inset-0 rounded-full blur-[60px] transition-all duration-300 opacity-20"
         style={{
@@ -143,6 +143,7 @@ const FactraScoreGauge = ({ score, size = "normal", minimal = false }: FactraSco
       </div>
     </div>
   );
-};
+});
+FactraScoreGauge.displayName = "FactraScoreGauge";
 
 export default FactraScoreGauge;

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   Activity, ArrowUpRight, Briefcase, Lock, TrendingUp,
   ChevronRight, Search, BarChart2, AlertCircle, Sparkles,
@@ -22,7 +22,7 @@ interface DashboardViewProps {
 }
 
 /* ── TradingView Chart Widget ────────────────────────── */
-const TradingViewChart = ({ symbol }: { symbol: string }) => {
+const TradingViewChart = React.forwardRef<HTMLDivElement, { symbol: string }>(({ symbol }, ref) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const chartId = `tv_dashboard_${symbol}`;
 
@@ -72,9 +72,14 @@ const TradingViewChart = ({ symbol }: { symbol: string }) => {
   }, [symbol, chartId]);
 
   return (
-    <div id={chartId} ref={containerRef} className="w-full h-full" />
+    <div id={chartId} ref={(node) => {
+      (containerRef as React.MutableRefObject<HTMLDivElement | null>).current = node;
+      if (typeof ref === 'function') ref(node);
+      else if (ref) (ref as React.MutableRefObject<HTMLDivElement | null>).current = node;
+    }} className="w-full h-full" />
   );
-};
+});
+TradingViewChart.displayName = "TradingViewChart";
 
 /* ── Marker data from live stock data ─────────────── */
 const buildMarkerData = (stock: StockData) => ({
