@@ -217,12 +217,12 @@ const DashboardView = ({ setActiveTab, onSelectStock, onTrade }: DashboardViewPr
         </div>
         <div className="p-6 hover:bg-foreground/[0.03] transition-colors cursor-default group">
           <div className="text-muted-foreground text-xs uppercase tracking-wider mb-2 flex items-center gap-2 group-hover:text-foreground transition-colors">
-            <ArrowUpRight size={14} /> Day's P&L
+            <ArrowUpRight size={14} /> Portfolio P&L
           </div>
-          <div className={`text-2xl font-bold mb-1 tracking-tight ${daysPnl >= 0 ? 'text-primary' : 'text-destructive'}`}>
-            {startOfDayLiquidity != null ? `${daysPnl >= 0 ? '+' : ''}$${Math.abs(daysPnl).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '--'}
+          <div className={`text-2xl font-bold mb-1 tracking-tight ${portfolioPnl >= 0 ? 'text-primary' : 'text-destructive'}`}>
+            {`${portfolioPnl >= 0 ? '+' : ''}$${Math.abs(portfolioPnl).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
           </div>
-          <div className="text-sm text-muted-foreground">{startOfDayLiquidity != null ? `${daysPnlPct >= 0 ? '+' : ''}${daysPnlPct.toFixed(2)}% Today` : 'No trades yet'}</div>
+          <div className="text-sm text-muted-foreground">{`${portfolioPnlPct >= 0 ? '+' : ''}${portfolioPnlPct.toFixed(2)}% vs. $10,000`}</div>
         </div>
         <div className="p-6 hover:bg-foreground/[0.03] transition-colors cursor-default group">
           <div className="text-muted-foreground text-xs uppercase tracking-wider mb-2 flex items-center gap-2 group-hover:text-foreground transition-colors">
