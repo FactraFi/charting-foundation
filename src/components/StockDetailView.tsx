@@ -110,7 +110,7 @@ const WhyScoreSkeleton = () => (
       ))}
     </div>
   </div>
-
+);
 
 const PillarCard = React.forwardRef<HTMLDivElement, {
   index: string;
