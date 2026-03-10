@@ -62,7 +62,7 @@ const getMarkerIcon = (type: string) => {
   }
 };
 
-const MarkerSection = ({ stock, onBack }: MarkerSectionProps) => {
+const MarkerSection = ({ stock, onBack, onTrade }: MarkerSectionProps) => {
   const [selectedMarker, setSelectedMarker] = useState('Technical');
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const { data: summary, isLoading: summaryLoading } = useStockSummary(stock);
