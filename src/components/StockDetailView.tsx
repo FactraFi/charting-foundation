@@ -313,15 +313,16 @@ const StockDetailView = ({ stock, onBack, onTrade }: StockDetailViewProps) => {
           ) : !scoreHistory || scoreHistory.length === 0 ? (
             <div className="h-56 flex items-center justify-center text-muted-foreground text-sm flex-1">No historical data available.</div>
           ) : (
-          <div className="h-56 relative z-10 flex-1">
+          <div className="h-64 relative z-10 flex-1">
             <ResponsiveContainer width="100%" height="100%">
-              <ComposedChart data={scoreHistory}>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                <XAxis dataKey="name" tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 10 }} />
-                <YAxis domain={[0, 100]} tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 10 }} />
+              <ComposedChart data={scoreHistory} margin={{ left: -10, right: 5, top: 5, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="2 6" stroke="hsl(var(--border) / 0.4)" />
+                <XAxis dataKey="name" tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 10 }} interval="preserveStartEnd" />
+                <YAxis domain={[0, 100]} width={30} tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 10 }} />
                 <Tooltip
-                  contentStyle={{ backgroundColor: "hsl(var(--background))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 11 }}
-                  labelStyle={{ color: "hsl(var(--foreground))" }}
+                  contentStyle={{ backgroundColor: "hsl(var(--background))", border: "1px solid hsl(var(--border))", borderRadius: 10, fontSize: 11, backdropFilter: "blur(8px)" }}
+                  labelStyle={{ color: "hsl(var(--foreground))", fontWeight: 600 }}
+                  cursor={{ fill: "hsl(var(--muted) / 0.3)" }}
                 />
                 {scoreHistory.length > 0 && (
                   <ReferenceLine
@@ -332,8 +333,8 @@ const StockDetailView = ({ stock, onBack, onTrade }: StockDetailViewProps) => {
                     label={{ value: "Today", position: "top", fill: "hsl(var(--foreground))", fontSize: 10, fontWeight: 700 }}
                   />
                 )}
-                {visibleLines.has("Total") && <Bar dataKey="Total" fill="hsl(var(--primary) / 0.35)" radius={[3, 3, 0, 0]} />}
-                {visibleLines.has("Fundamentals") && <Line type="linear" dataKey="Fundamentals" stroke="hsl(142, 71%, 45%)" strokeWidth={1.5} dot={false} />}
+                {visibleLines.has("Total") && <Bar dataKey="Total" fill="hsl(var(--muted-foreground) / 0.2)" stroke="hsl(var(--muted-foreground) / 0.3)" strokeWidth={0.5} radius={[3, 3, 0, 0]} />}
+                {visibleLines.has("Fundamentals") && <Line type="linear" dataKey="Fundamentals" stroke="hsl(150, 80%, 55%)" strokeWidth={1.5} dot={false} />}
                 {visibleLines.has("Momentum") && <Line type="linear" dataKey="Momentum" stroke="hsl(188, 85%, 50%)" strokeWidth={1.5} dot={false} />}
                 {visibleLines.has("Risk") && <Line type="linear" dataKey="Risk" stroke="hsl(38, 92%, 50%)" strokeWidth={1.5} dot={false} />}
                 {visibleLines.has("Sentiment") && <Line type="linear" dataKey="Sentiment" stroke="hsl(263, 70%, 58%)" strokeWidth={1.5} dot={false} />}
