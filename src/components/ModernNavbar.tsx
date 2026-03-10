@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import {
-  LayoutDashboard, Search, Cpu, Workflow, Briefcase, Bell,
+  LayoutDashboard, Search, Cpu, Briefcase, Bell,
   Terminal, LogOut, Menu, X
 } from "lucide-react";
 import { useStockSearch } from "@/hooks/use-stock-data";
@@ -18,11 +18,6 @@ const routes = [
   { path: '/portfolio', label: 'Portfolio', icon: Briefcase },
 ];
 
-const NOTIFICATIONS = [
-  { id: 1, title: 'Welcome to FactraFi', message: 'Start by searching for any stock ticker', time: 'Just now', type: 'info' as const },
-  { id: 2, title: 'Live Data Active', message: 'Real-time prices powered by yFinance', time: '1m ago', type: 'success' as const },
-];
-
 const ModernNavbar = ({ onLogout }: NavbarProps) => {
   const { profile } = useAuth();
   const displayName = profile?.full_name || profile?.email || "User";
@@ -35,6 +30,7 @@ const ModernNavbar = ({ onLogout }: NavbarProps) => {
   const [showNotifications, setShowNotifications] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const searchRef = useRef<HTMLDivElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
   const notifRef = useRef<HTMLDivElement>(null);
   const profileRef = useRef<HTMLDivElement>(null);
 
@@ -48,6 +44,19 @@ const ModernNavbar = ({ onLogout }: NavbarProps) => {
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  // Wire ⌘K / Ctrl+K shortcut
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        searchInputRef.current?.focus();
+        setIsSearchFocused(true);
+      }
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
   }, []);
 
   return (
