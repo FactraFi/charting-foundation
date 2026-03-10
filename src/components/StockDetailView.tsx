@@ -315,7 +315,7 @@ const StockDetailView = ({ stock, onBack, onTrade }: StockDetailViewProps) => {
           ) : (
           <div className="h-56 relative z-10 flex-1">
             <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={scoreHistory}>
+              <ComposedChart data={scoreHistory}>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                 <XAxis dataKey="name" tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 10 }} />
                 <YAxis domain={[0, 100]} tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 10 }} />
@@ -323,12 +323,21 @@ const StockDetailView = ({ stock, onBack, onTrade }: StockDetailViewProps) => {
                   contentStyle={{ backgroundColor: "hsl(var(--background))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 11 }}
                   labelStyle={{ color: "hsl(var(--foreground))" }}
                 />
-                {visibleLines.has("Total") && <Line type="monotone" dataKey="Total" stroke="hsl(var(--primary))" strokeWidth={2} dot={false} />}
-                {visibleLines.has("Fundamentals") && <Line type="monotone" dataKey="Fundamentals" stroke="hsl(142, 71%, 45%)" strokeWidth={1.5} dot={false} />}
-                {visibleLines.has("Momentum") && <Line type="monotone" dataKey="Momentum" stroke="hsl(188, 85%, 50%)" strokeWidth={1.5} dot={false} />}
-                {visibleLines.has("Risk") && <Line type="monotone" dataKey="Risk" stroke="hsl(38, 92%, 50%)" strokeWidth={1.5} dot={false} />}
-                {visibleLines.has("Sentiment") && <Line type="monotone" dataKey="Sentiment" stroke="hsl(263, 70%, 58%)" strokeWidth={1.5} dot={false} />}
-              </LineChart>
+                {scoreHistory.length > 0 && (
+                  <ReferenceLine
+                    x={scoreHistory[scoreHistory.length - 1].name}
+                    stroke="hsl(var(--foreground))"
+                    strokeDasharray="4 4"
+                    strokeWidth={1.5}
+                    label={{ value: "Today", position: "top", fill: "hsl(var(--foreground))", fontSize: 10, fontWeight: 700 }}
+                  />
+                )}
+                {visibleLines.has("Total") && <Bar dataKey="Total" fill="hsl(var(--primary) / 0.35)" radius={[3, 3, 0, 0]} />}
+                {visibleLines.has("Fundamentals") && <Line type="linear" dataKey="Fundamentals" stroke="hsl(142, 71%, 45%)" strokeWidth={1.5} dot={false} />}
+                {visibleLines.has("Momentum") && <Line type="linear" dataKey="Momentum" stroke="hsl(188, 85%, 50%)" strokeWidth={1.5} dot={false} />}
+                {visibleLines.has("Risk") && <Line type="linear" dataKey="Risk" stroke="hsl(38, 92%, 50%)" strokeWidth={1.5} dot={false} />}
+                {visibleLines.has("Sentiment") && <Line type="linear" dataKey="Sentiment" stroke="hsl(263, 70%, 58%)" strokeWidth={1.5} dot={false} />}
+              </ComposedChart>
             </ResponsiveContainer>
           </div>
           )}
