@@ -1,9 +1,9 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Activity, DollarSign, TrendingUp, Briefcase, Zap, Lock, Sparkles
 } from "lucide-react";
 import {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
+  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer
 } from "recharts";
 import MarkerSection from "@/components/MarkerSection";
@@ -124,23 +124,21 @@ const PillarCard = ({ index, label, score, bullets, compact }: {
 /* ── Main Component ──────────────────────────────────── */
 const StockDetailView = ({ stock, onBack, onTrade }: StockDetailViewProps) => {
   const { data: whyScore, isLoading: whyLoading } = useWhyScore(stock);
+  const [days, setDays] = useState(30);
+  const [visibleLines, setVisibleLines] = useState<Set<string>>(
+    () => new Set(["Total", "Fundamentals", "Momentum", "Risk", "Sentiment"])
+  );
 
-  const { data: scoreHistory, isLoading: historyLoading } = useScoreHistory(stock.ticker);
+  const { data: scoreHistory, isLoading: historyLoading } = useScoreHistory(stock.ticker, days);
 
-  const vScoreHistory = scoreHistory && scoreHistory.length > 0
-    ? scoreHistory
-    : Array.from({ length: 20 }).map((_, i) => {
-        const d = new Date();
-        d.setDate(d.getDate() - (19 - i));
-        return {
-          name: d.toLocaleDateString("en-US", { month: "short", day: "numeric" }),
-          date: d.toISOString().split("T")[0],
-          Fundamentals: stock.fundamentals ?? 50,
-          Momentum: stock.momentum ?? 50,
-          Risk: stock.risk ?? 50,
-          Sentiment: stock.sentiment ?? 50,
-        };
-      });
+  const toggleLine = (key: string) => {
+    setVisibleLines((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  };
 
   const pillars = [
     { key: "fundamentals", label: "Fundamentals", desc: "Earnings & financial health.", score: stock.fundamentals },
@@ -290,13 +288,32 @@ const StockDetailView = ({ stock, onBack, onTrade }: StockDetailViewProps) => {
       {/* ── V-Score History ──────────────────────────── */}
       <div className="bg-background border border-border rounded-xl p-5 relative overflow-hidden group">
         <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
-        <h3 className="text-lg font-bold text-foreground tracking-tight mb-4 relative z-10 font-sans">V-Score History</h3>
+        <div className="flex items-center justify-between mb-4 relative z-10">
+          <h3 className="text-lg font-bold text-foreground tracking-tight font-sans">V-Score History</h3>
+          <div className="flex gap-1">
+            {[30, 60, 90].map((d) => (
+              <button
+                key={d}
+                onClick={() => setDays(d)}
+                className={`px-3 py-1 text-xs font-bold rounded-full border transition-colors ${
+                  days === d
+                    ? "bg-primary text-primary-foreground border-primary"
+                    : "bg-transparent text-muted-foreground border-border hover:border-primary/50"
+                }`}
+              >
+                {d}D
+              </button>
+            ))}
+          </div>
+        </div>
         {historyLoading ? (
           <Skeleton className="h-64 rounded-lg" />
+        ) : !scoreHistory || scoreHistory.length === 0 ? (
+          <div className="h-64 flex items-center justify-center text-muted-foreground text-sm">No historical data available.</div>
         ) : (
         <div className="h-64 relative z-10">
           <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={vScoreHistory} barGap={2}>
+            <LineChart data={scoreHistory}>
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
               <XAxis dataKey="name" tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 10 }} />
               <YAxis domain={[0, 100]} tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 10 }} />
@@ -304,14 +321,38 @@ const StockDetailView = ({ stock, onBack, onTrade }: StockDetailViewProps) => {
                 contentStyle={{ backgroundColor: "hsl(var(--background))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 11 }}
                 labelStyle={{ color: "hsl(var(--foreground))" }}
               />
-              <Bar dataKey="Fundamentals" fill="hsl(var(--primary))" radius={[2, 2, 0, 0]} />
-              <Bar dataKey="Momentum" fill="hsl(var(--primary) / 0.7)" radius={[2, 2, 0, 0]} />
-              <Bar dataKey="Risk" fill="hsl(var(--primary) / 0.5)" radius={[2, 2, 0, 0]} />
-              <Bar dataKey="Sentiment" fill="hsl(var(--primary) / 0.3)" radius={[2, 2, 0, 0]} />
-            </BarChart>
+              {visibleLines.has("Total") && <Line type="monotone" dataKey="Total" stroke="hsl(var(--primary))" strokeWidth={2} dot={false} />}
+              {visibleLines.has("Fundamentals") && <Line type="monotone" dataKey="Fundamentals" stroke="hsl(142, 71%, 45%)" strokeWidth={1.5} dot={false} />}
+              {visibleLines.has("Momentum") && <Line type="monotone" dataKey="Momentum" stroke="hsl(188, 85%, 50%)" strokeWidth={1.5} dot={false} />}
+              {visibleLines.has("Risk") && <Line type="monotone" dataKey="Risk" stroke="hsl(38, 92%, 50%)" strokeWidth={1.5} dot={false} />}
+              {visibleLines.has("Sentiment") && <Line type="monotone" dataKey="Sentiment" stroke="hsl(263, 70%, 58%)" strokeWidth={1.5} dot={false} />}
+            </LineChart>
           </ResponsiveContainer>
         </div>
         )}
+        {/* Toggle legend */}
+        <div className="flex flex-wrap gap-2 mt-3 relative z-10">
+          {([
+            { key: "Total", color: "hsl(var(--primary))" },
+            { key: "Fundamentals", color: "hsl(142, 71%, 45%)" },
+            { key: "Momentum", color: "hsl(188, 85%, 50%)" },
+            { key: "Risk", color: "hsl(38, 92%, 50%)" },
+            { key: "Sentiment", color: "hsl(263, 70%, 58%)" },
+          ] as const).map(({ key, color }) => (
+            <button
+              key={key}
+              onClick={() => toggleLine(key)}
+              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[11px] font-semibold transition-all ${
+                visibleLines.has(key)
+                  ? "border-border text-foreground"
+                  : "border-transparent text-muted-foreground/40"
+              }`}
+            >
+              <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: visibleLines.has(key) ? color : "hsl(var(--muted))" }} />
+              {key}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* ── Price Chart (TradingView) ────────────────── */}

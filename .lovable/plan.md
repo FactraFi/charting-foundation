@@ -1,41 +1,47 @@
 
 
-## Convert V-Score History to Interactive Line Chart
+## Fix 4 Issues: Unused Imports, Missing Trade Buttons, Order Side Badge
 
-### Changes
+### Issue 1: Add Buy/Sell Buttons to StockDetailView
 
-**1. `src/hooks/use-score-history.ts`**
-- Add `v_score` to the select query and returned data type (`ScoreHistoryPoint`)
-- Accept `days` parameter (default 30) — the hook already does this but the component hardcodes 20
-- Include `"Total"` (v_score) field in the returned data points
+**Problem**: The `onTrade` prop is accepted but never destructured or used -- users cannot trade from the stock detail page.
 
-**2. `src/components/StockDetailView.tsx`**
+**Fix in `src/components/StockDetailView.tsx`**:
+- Line 122: Destructure `onTrade` from props (currently only `stock` and `onBack` are destructured)
+- Add two trade buttons (Buy / Sell) next to the Watchlist and Refresh buttons in the MarkerSection area. Since MarkerSection doesn't accept an `onTrade` prop, the buttons will be added directly in StockDetailView, right below the MarkerSection component (line 145).
 
-**Chart conversion:**
-- Replace `BarChart`/`Bar` imports with `LineChart`/`Line` from recharts
-- Render 5 lines: Total (v_score), Fundamentals, Momentum, Risk, Sentiment — each with a distinct color
+The buttons will be styled consistently with the app's design system using the primary color for Buy and destructive for Sell.
 
-**Toggle buttons (legend):**
-- Add local state: `visibleLines` — a `Set<string>` initialized with all 5 series names
-- Below the chart, render 5 toggle buttons (colored dots + label). Clicking toggles that series in/out of `visibleLines`
-- Each `<Line>` is conditionally rendered or hidden based on the set
+### Issue 2: Remove Unused Imports in ModernNavbar
 
-**Time range selector:**
-- Add local state: `days` (default 30)
-- Top-right corner of the card header: 3 buttons — 30D, 60D, 90D — styled as pills, active one highlighted
-- Pass `days` to `useScoreHistory(stock.ticker, days)`
+**Problem**: `Settings`, `User`, `CreditCard` are imported but never used.
 
-**Fallback removal:**
-- Remove the inline mock data fallback (lines 130-143) — show skeleton or "No data" if empty
+**Fix in `src/components/ModernNavbar.tsx`**:
+- Line 5: Remove `Settings`, `User`, `CreditCard` from the lucide-react import statement.
 
-**3. `supabase/functions/snapshot-scores/index.ts`**
-- Already stores `v_score` — no changes needed
+### Issue 3: Remove Unused Import in ScreenerView
 
-**4. Database**
-- `score_history` table already has `v_score` column — no migration needed
+**Problem**: `Star` is imported but never used.
 
-### Visual Design
-- Line colors: Total = primary, Fundamentals = emerald, Momentum = cyan, Risk = amber, Sentiment = violet
-- Toggle buttons: small rounded pills with colored dot, dimmed when inactive
-- Time range buttons: compact pills in top-right, matching existing card styling
+**Fix in `src/components/ScreenerView.tsx`**:
+- Line 2: Remove `Star` from the lucide-react import statement.
+
+### Issue 4: Fix Order Side Badge Case Mismatch in PortfolioView
+
+**Problem**: `order.side === "buy"` fails because the database stores sides as uppercase ("BUY"/"SELL").
+
+**Fix in `src/components/PortfolioView.tsx`**:
+- Line 406: Change `order.side === "buy"` to `order.side.toUpperCase() === "BUY"` so the badge correctly shows green for buy orders and red for sell orders.
+
+---
+
+### Technical Summary
+
+| File | Line(s) | Change |
+|------|---------|--------|
+| `src/components/StockDetailView.tsx` | 122 | Destructure `onTrade` from props |
+| `src/components/StockDetailView.tsx` | ~145 | Add Buy/Sell buttons below MarkerSection |
+| `src/components/ModernNavbar.tsx` | 5 | Remove `Settings`, `User`, `CreditCard` imports |
+| `src/components/ScreenerView.tsx` | 2 | Remove `Star` import |
+| `src/components/PortfolioView.tsx` | 406 | Case-insensitive side comparison |
 
