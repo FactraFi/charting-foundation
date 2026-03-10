@@ -123,7 +123,7 @@ const MarkerSection = ({ stock, onBack, onTrade }: MarkerSectionProps) => {
         </div>
 
         {/* Right Side: Markers */}
-        <div className="flex-1 border-l border-border pl-8">
+        <div className="max-w-[380px] w-full border-l border-border pl-8">
           <div className="relative mb-4">
             <button
               onClick={() => setIsDropdownOpen(!isDropdownOpen)}
