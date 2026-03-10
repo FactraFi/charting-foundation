@@ -1,6 +1,6 @@
 import { useState } from "react";
 import {
-  ChevronLeft, ChevronDown, Plus, RefreshCcw,
+  ChevronLeft, ChevronDown,
   TrendingUp, MessageSquare, BarChart3
 } from "lucide-react";
 import type { StockData } from "@/lib/api";
