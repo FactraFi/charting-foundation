@@ -7,7 +7,7 @@ interface FactraScoreGaugeProps {
   minimal?: boolean;
 }
 
-const FactraScoreGauge = ({ score, size = "normal", minimal = false }: FactraScoreGaugeProps) => {
+const FactraScoreGauge = React.forwardRef<HTMLDivElement, FactraScoreGaugeProps>(({ score, size = "normal", minimal = false }, ref) => {
   const [displayScore, setDisplayScore] = useState(0);
   const [wave, setWave] = useState(0);
   const timeRef = useRef(0);
