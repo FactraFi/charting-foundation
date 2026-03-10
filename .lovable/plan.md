@@ -1,38 +1,47 @@
 
 
-## Side-by-Side Layout: Score + Breakdown | Why This Score
+## Fix 4 Issues: Unused Imports, Missing Trade Buttons, Order Side Badge
 
-### Current State
-The FactraFi Total Score (lines 148-203) and the "Why This Score?" section (lines 270-335) are stacked vertically as separate full-width blocks.
+### Issue 1: Add Buy/Sell Buttons to StockDetailView
 
-### Plan
+**Problem**: The `onTrade` prop is accepted but never destructured or used -- users cannot trade from the stock detail page.
 
-**File: `src/components/StockDetailView.tsx`**
+**Fix in `src/components/StockDetailView.tsx`**:
+- Line 122: Destructure `onTrade` from props (currently only `stock` and `onBack` are destructured)
+- Add two trade buttons (Buy / Sell) next to the Watchlist and Refresh buttons in the MarkerSection area. Since MarkerSection doesn't accept an `onTrade` prop, the buttons will be added directly in StockDetailView, right below the MarkerSection component (line 145).
 
-1. **Wrap the Scorecard and Why This Score in a single horizontal container**
-   - Replace the current vertical stacking with a `flex` row (`lg:flex-row`, stacked on mobile).
-   - **Left panel (~45%)**: The existing FactraFi Total Score box + connector lines + 4 pillar cards. Keep as-is but constrain width.
-   - **Right panel (~55%)**: Move the entire "Why This Score?" block here. Reduce font sizes to fit:
-     - Title: `text-xl` (from `text-2xl`)
-     - Summary: `text-sm` (from `text-lg`)
-     - PillarCard title: `text-sm` (from `text-lg`)
-     - Bullet text: `text-xs` (from base)
-     - Pillar grid gap: `gap-4` (from `gap-8`)
-     - Container padding: `p-5` (from `p-8`)
+The buttons will be styled consistently with the app's design system using the primary color for Buy and destructive for Sell.
 
-2. **Remove the old standalone "Why This Score?" section** (lines 270-335) since it moves into the right panel.
+### Issue 2: Remove Unused Imports in ModernNavbar
 
-3. **PillarCard component** — Add an optional `compact` prop that applies smaller text sizes when rendered in the side-by-side layout.
+**Problem**: `Settings`, `User`, `CreditCard` are imported but never used.
 
-### Layout Result
-```text
-┌─────────────────────────────┬──────────────────────────────────┐
-│   FACTRAFI TOTAL SCORE      │  Why This Score?    AI ENHANCED  │
-│         66 /100             │  Summary text...                 │
-│   ----connector lines----   │  01. Fundamentals    03. Risk    │
-│ FUND | RISK | SENT | MOM   │  02. Momentum        04. Sent    │
-└─────────────────────────────┴──────────────────────────────────┘
-```
+**Fix in `src/components/ModernNavbar.tsx`**:
+- Line 5: Remove `Settings`, `User`, `CreditCard` from the lucide-react import statement.
 
-On mobile (`< lg`), columns stack vertically as before.
+### Issue 3: Remove Unused Import in ScreenerView
+
+**Problem**: `Star` is imported but never used.
+
+**Fix in `src/components/ScreenerView.tsx`**:
+- Line 2: Remove `Star` from the lucide-react import statement.
+
+### Issue 4: Fix Order Side Badge Case Mismatch in PortfolioView
+
+**Problem**: `order.side === "buy"` fails because the database stores sides as uppercase ("BUY"/"SELL").
+
+**Fix in `src/components/PortfolioView.tsx`**:
+- Line 406: Change `order.side === "buy"` to `order.side.toUpperCase() === "BUY"` so the badge correctly shows green for buy orders and red for sell orders.
+
+---
+
+### Technical Summary
+
+| File | Line(s) | Change |
+|------|---------|--------|
+| `src/components/StockDetailView.tsx` | 122 | Destructure `onTrade` from props |
+| `src/components/StockDetailView.tsx` | ~145 | Add Buy/Sell buttons below MarkerSection |
+| `src/components/ModernNavbar.tsx` | 5 | Remove `Settings`, `User`, `CreditCard` imports |
+| `src/components/ScreenerView.tsx` | 2 | Remove `Star` import |
+| `src/components/PortfolioView.tsx` | 406 | Case-insensitive side comparison |
 
