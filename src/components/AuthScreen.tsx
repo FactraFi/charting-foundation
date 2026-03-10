@@ -157,7 +157,7 @@ const AuthScreen = () => {
               <p className="text-muted-foreground text-sm">
                 We've sent {authView === 'forgot' ? 'password reset instructions' : 'a confirmation link'} to <strong className="text-foreground">{email}</strong>.
               </p>
-              <button onClick={() => { setAuthView('login'); setResetSent(false); }}
+              <button onClick={() => { setAuthView('login'); setConfirmationSent(false); }}
                 className="text-primary font-bold text-sm hover:underline mt-4 block w-full">
                 Back to Sign In
               </button>
