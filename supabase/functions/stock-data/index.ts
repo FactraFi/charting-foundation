@@ -56,6 +56,7 @@ async function fetchAlphaOverview(ticker: string, apiKey: string) {
     name: d.Name ?? ticker,
     sector: d.Sector ?? "",
     industry: d.Industry ?? "",
+    description: d.Description || null,
     market_cap: formatMarketCap(d.MarketCapitalization),
     pe_ratio: parseFloat(d.PERatio) || null,
     forward_pe: parseFloat(d.ForwardPE) || null,
