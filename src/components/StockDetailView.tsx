@@ -3,8 +3,8 @@ import {
   Activity, DollarSign, TrendingUp, Briefcase, Zap, Lock, Sparkles
 } from "lucide-react";
 import {
-  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip,
-  ResponsiveContainer
+  ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip,
+  ResponsiveContainer, ReferenceLine
 } from "recharts";
 import MarkerSection from "@/components/MarkerSection";
 import { Skeleton } from "@/components/ui/skeleton";
