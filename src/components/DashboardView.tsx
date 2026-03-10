@@ -72,9 +72,14 @@ const TradingViewChart = React.forwardRef<HTMLDivElement, { symbol: string }>(({
   }, [symbol, chartId]);
 
   return (
-    <div id={chartId} ref={containerRef} className="w-full h-full" />
+    <div id={chartId} ref={(node) => {
+      (containerRef as React.MutableRefObject<HTMLDivElement | null>).current = node;
+      if (typeof ref === 'function') ref(node);
+      else if (ref) (ref as React.MutableRefObject<HTMLDivElement | null>).current = node;
+    }} className="w-full h-full" />
   );
-};
+});
+TradingViewChart.displayName = "TradingViewChart";
 
 /* ── Marker data from live stock data ─────────────── */
 const buildMarkerData = (stock: StockData) => ({
