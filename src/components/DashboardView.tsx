@@ -237,10 +237,12 @@ const DashboardView = ({ setActiveTab, onSelectStock, onTrade }: DashboardViewPr
         >
           <div>
             <div className="text-muted-foreground text-xs uppercase tracking-wider mb-2 flex items-center gap-2 group-hover:text-foreground transition-colors">
-              <Briefcase size={14} /> Positions
+              <TrendingUp size={14} /> Portfolio XIRR
             </div>
-            <div className="text-2xl font-bold text-foreground tracking-tight">{holdings?.length ?? 0}</div>
-            <div className="text-sm text-muted-foreground">Active holdings</div>
+            <div className={`text-2xl font-bold tracking-tight ${xirr != null && xirr >= 0 ? 'text-primary' : xirr != null ? 'text-destructive' : 'text-muted-foreground'}`}>
+              {xirr != null ? `${xirr >= 0 ? '+' : ''}${(xirr * 100).toFixed(1)}%` : '--'}
+            </div>
+            <div className="text-sm text-muted-foreground">Annualized return</div>
           </div>
           <div className="h-10 w-10 rounded-full border border-border flex items-center justify-center text-muted-foreground group-hover:text-foreground group-hover:border-primary group-hover:bg-primary/10 group-hover:scale-110 transition-all duration-300">
             <ChevronRight size={20} />
