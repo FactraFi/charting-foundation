@@ -343,9 +343,9 @@ const StockDetailView = ({ stock, onBack, onTrade }: StockDetailViewProps) => {
           </div>
           )}
           {/* Toggle legend */}
-          <div className="flex flex-wrap gap-2 mt-3 relative z-10">
+          <div className="flex flex-wrap gap-2 mt-3 relative z-10 justify-center">
             {([
-              { key: "Total", color: "hsl(var(--primary))" },
+              { key: "Total", color: "hsl(var(--muted-foreground))" },
               { key: "Fundamentals", color: "hsl(142, 71%, 45%)" },
               { key: "Momentum", color: "hsl(188, 85%, 50%)" },
               { key: "Risk", color: "hsl(38, 92%, 50%)" },
