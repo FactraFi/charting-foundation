@@ -98,6 +98,7 @@ const ModernNavbar = ({ onLogout }: NavbarProps) => {
               <div className="flex items-center bg-card border border-border rounded-full px-3 py-1.5 w-64 hover:border-muted-foreground focus-within:border-primary transition-colors duration-300">
                 <Search size={14} className="text-muted-foreground mr-2" />
                 <input
+                  ref={searchInputRef}
                   type="text"
                   placeholder="Search any stock..."
                   className="bg-transparent border-none text-xs text-foreground focus:outline-none w-full placeholder:text-muted-foreground"
