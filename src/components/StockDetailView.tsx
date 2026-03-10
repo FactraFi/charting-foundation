@@ -93,7 +93,7 @@ const deriveMetricLabel = (stock: StockData) => [
   { label: "Growth", val: stock.revenue_growth ? (parseFloat(stock.revenue_growth) > 10 ? "ACCELERATING" : "STEADY") : "N/A", icon: TrendingUp, color: "text-primary" },
   { label: "Profitability", val: stock.profit_margin ? (parseFloat(stock.profit_margin) > 20 ? "STRONG" : "MODERATE") : "N/A", icon: Briefcase, color: "text-foreground" },
   { label: "Technicals", val: stock.signal.toUpperCase().includes("BUY") ? "BULLISH" : stock.signal.toUpperCase().includes("SELL") ? "BEARISH" : "NEUTRAL", icon: Zap, color: stock.signal.includes("Buy") ? "text-primary" : "text-destructive" },
-  { label: "Risk", val: stock.risk !== null ? (stock.risk <= 40 ? "LOW RISK" : stock.risk <= 70 ? "MODERATE" : "HIGH RISK") : "N/A", icon: Lock, color: stock.risk && stock.risk <= 40 ? "text-primary" : "text-yellow-500" },
+  { label: "Risk", val: stock.risk !== null ? (stock.risk >= 70 ? "LOW RISK" : stock.risk >= 40 ? "MODERATE" : "HIGH RISK") : "N/A", icon: Lock, color: stock.risk && stock.risk >= 70 ? "text-primary" : "text-yellow-500" },
 ];
 
 /* ── Sub-components ──────────────────────────────────── */
