@@ -26,8 +26,14 @@ const TradingViewChart = ({ symbol }: { symbol: string }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const chartId = `tv_dashboard_${symbol}`;
 
+  const widgetRef = useRef<any>(null);
+
   useEffect(() => {
     if (!containerRef.current) return;
+    if (widgetRef.current) {
+      try { widgetRef.current.remove(); } catch {}
+      widgetRef.current = null;
+    }
     containerRef.current.innerHTML = "";
 
     const tv = (window as any).TradingView;
@@ -37,7 +43,7 @@ const TradingViewChart = ({ symbol }: { symbol: string }) => {
       return;
     }
 
-    new tv.widget({
+    widgetRef.current = new tv.widget({
       autosize: true,
       symbol: symbol,
       interval: "D",
@@ -56,6 +62,13 @@ const TradingViewChart = ({ symbol }: { symbol: string }) => {
       backgroundColor: "#050505",
       gridColor: "rgba(30,33,40,0.6)",
     });
+
+    return () => {
+      if (widgetRef.current) {
+        try { widgetRef.current.remove(); } catch {}
+        widgetRef.current = null;
+      }
+    };
   }, [symbol, chartId]);
 
   return (
@@ -151,13 +164,13 @@ const DashboardView = ({ setActiveTab, onSelectStock, onTrade }: DashboardViewPr
 
   const getPillarColor = (score: number | null, isRisk = false) => {
     if (score === null) return 'text-muted-foreground';
-    if (isRisk) return score <= 40 ? 'text-primary' : score <= 70 ? 'text-yellow-500' : 'text-destructive';
+    if (isRisk) return score >= 70 ? 'text-primary' : score >= 40 ? 'text-yellow-500' : 'text-destructive';
     return score >= 80 ? 'text-primary' : score >= 60 ? 'text-yellow-500' : 'text-destructive';
   };
 
   const getPillarLabel = (score: number | null, isRisk = false): string => {
     if (score === null) return 'Pending';
-    if (isRisk) return score <= 30 ? 'Low' : score <= 60 ? 'Moderate' : 'High';
+    if (isRisk) return score >= 70 ? 'Low' : score >= 40 ? 'Moderate' : 'High';
     if (score >= 90) return 'Excellent';
     if (score >= 75) return 'Strong';
     if (score >= 60) return 'Good';
@@ -219,10 +232,10 @@ const DashboardView = ({ setActiveTab, onSelectStock, onTrade }: DashboardViewPr
         >
           <div>
             <div className="text-muted-foreground text-xs uppercase tracking-wider mb-2 flex items-center gap-2 group-hover:text-foreground transition-colors">
-              <Activity size={14} /> Portfolio XIRR
+              <Briefcase size={14} /> Positions
             </div>
-            <div className="text-2xl font-bold text-muted-foreground tracking-tight">--</div>
-            <div className="text-sm text-muted-foreground">N/A</div>
+            <div className="text-2xl font-bold text-foreground tracking-tight">{holdings?.length ?? 0}</div>
+            <div className="text-sm text-muted-foreground">Active holdings</div>
           </div>
           <div className="h-10 w-10 rounded-full border border-border flex items-center justify-center text-muted-foreground group-hover:text-foreground group-hover:border-primary group-hover:bg-primary/10 group-hover:scale-110 transition-all duration-300">
             <ChevronRight size={20} />

@@ -116,15 +116,16 @@ const PortfolioView = ({ onSelectStock, onTrade }: PortfolioViewProps) => {
   } = useHoldingsWithPrices(holdings);
 
   const { data: historyData = [] } = usePortfolioHistory(timePeriod);
-  const { data: startOfDayLiquidity = INITIAL_CAPITAL } = useStartOfDayLiquidity();
+  const { data: startOfDayLiquidity } = useStartOfDayLiquidity();
   const { data: queuedOrders = [] } = useQueuedOrders();
   const cancelOrder = useCancelOrder();
   const { data: healthData } = usePortfolioHealth();
 
   // Phase 2: KPI calculations
   const netLiquidity = cashBalance + totalMarketValue;
-  const daysPnl = netLiquidity - startOfDayLiquidity;
-  const daysPnlPct = startOfDayLiquidity !== 0 ? (daysPnl / startOfDayLiquidity) * 100 : 0;
+  const sodLiq = startOfDayLiquidity ?? null;
+  const daysPnl = sodLiq != null ? netLiquidity - sodLiq : 0;
+  const daysPnlPct = sodLiq != null && sodLiq !== 0 ? (daysPnl / sodLiq) * 100 : 0;
   const totalReturn = netLiquidity - INITIAL_CAPITAL;
   const totalReturnPct = (totalReturn / INITIAL_CAPITAL) * 100;
 
@@ -170,7 +171,7 @@ const PortfolioView = ({ onSelectStock, onTrade }: PortfolioViewProps) => {
             <div>
               <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">Day's P&L</p>
               <p className={`text-lg font-bold font-sans tabular-nums ${daysPnl >= 0 ? "text-primary" : "text-destructive"}`}>
-                {daysPnl >= 0 ? "+" : ""}${daysPnl.toFixed(2)} <span className="text-xs">({daysPnlPct >= 0 ? "+" : ""}{daysPnlPct.toFixed(2)}%)</span>
+                {sodLiq != null ? `${daysPnl >= 0 ? "+" : ""}$${daysPnl.toFixed(2)}` : "--"} {sodLiq != null && <span className="text-xs">({daysPnlPct >= 0 ? "+" : ""}{daysPnlPct.toFixed(2)}%)</span>}
               </p>
             </div>
           </CardContent>

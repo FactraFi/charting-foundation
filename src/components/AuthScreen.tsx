@@ -13,7 +13,7 @@ const AuthScreen = () => {
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
   const [error, setError] = useState('');
-  const [resetSent, setResetSent] = useState(false);
+  const [confirmationSent, setConfirmationSent] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -28,7 +28,7 @@ const AuthScreen = () => {
           redirectTo: `${window.location.origin}/reset-password`,
         });
         if (err) { setError(err.message); return; }
-        setResetSent(true);
+        setConfirmationSent(true);
         return;
       }
 
@@ -39,7 +39,7 @@ const AuthScreen = () => {
         const { error: err } = await signUp(email, password, name);
         if (err) { setError(err); return; }
         // Show check-email message for email confirmation
-        setResetSent(true);
+        setConfirmationSent(true);
         return;
       }
 
@@ -54,7 +54,7 @@ const AuthScreen = () => {
 
   const toggleView = () => {
     setError('');
-    setResetSent(false);
+    setConfirmationSent(false);
     setAuthView(prev => prev === 'login' ? 'signup' : 'login');
   };
 
@@ -96,7 +96,7 @@ const AuthScreen = () => {
           </div>
 
           {/* Form */}
-          {!resetSent ? (
+          {!confirmationSent ? (
             <form className="space-y-6" onSubmit={handleSubmit}>
               {authView === 'signup' && (
                 <div className="space-y-2">
@@ -157,7 +157,7 @@ const AuthScreen = () => {
               <p className="text-muted-foreground text-sm">
                 We've sent {authView === 'forgot' ? 'password reset instructions' : 'a confirmation link'} to <strong className="text-foreground">{email}</strong>.
               </p>
-              <button onClick={() => { setAuthView('login'); setResetSent(false); }}
+              <button onClick={() => { setAuthView('login'); setConfirmationSent(false); }}
                 className="text-primary font-bold text-sm hover:underline mt-4 block w-full">
                 Back to Sign In
               </button>
@@ -165,7 +165,7 @@ const AuthScreen = () => {
           )}
 
           {/* Footer */}
-          {!resetSent && (
+          {!confirmationSent && (
             <div className="text-center text-sm text-muted-foreground">
               {authView === 'login' ? "Don't have an account? " : authView === 'signup' ? "Already have an account? " : "Remember your password? "}
               <button onClick={authView === 'forgot' ? () => setAuthView('login') : toggleView}

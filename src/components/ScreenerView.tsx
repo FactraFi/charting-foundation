@@ -83,10 +83,6 @@ const ScreenerCard = ({
           <span className="text-foreground font-bold">{stock.market_cap || 'N/A'}</span>
         </div>
         <div className="flex flex-col">
-          <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider mb-1">P/E Ratio</span>
-          <span className="text-foreground font-bold">N/A</span>
-        </div>
-        <div className="flex flex-col">
           <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider mb-1">Signal</span>
           <span className={`font-bold ${(stock.v_score ?? 0) >= 60 ? 'text-primary' : (stock.v_score ?? 0) >= 40 ? 'text-yellow-500' : 'text-destructive'}`}>
             {stock.signal}
@@ -209,13 +205,11 @@ const ScreenerView = ({ onSelectStock, onTrade }: ScreenerViewProps) => {
   };
 
   const handleSelectStock = (ticker: string) => {
-    const price = batchPrices?.[ticker];
-    onSelectStock({ ticker, name: ticker, sector: '', industry: '', current_price: price?.current_price ?? 0, day_change_pct: price?.day_change_pct ?? 0, volume: price?.volume ?? 0, previous_close: price?.previous_close ?? 0, market_cap: '', pe_ratio: null, forward_pe: null, debt_to_equity: null, roe: null, roce: null, dividend_yield: null, profit_margin: null, operating_margin: null, revenue_growth: null, eps_growth: null, beta: null, analyst_target: null, analyst_rating: null, year_change: null, v_score: null, fundamentals: null, momentum: null, risk: null, sentiment: null, signal: '', has_scores: false, why_explanation: null, description: null });
+    onSelectStock({ ticker } as StockData);
   };
 
   const handlePlaceOrder = (ticker: string) => {
-    const price = batchPrices?.[ticker];
-    onTrade({ ticker, name: ticker, sector: '', industry: '', current_price: price?.current_price ?? 0, day_change_pct: price?.day_change_pct ?? 0, volume: price?.volume ?? 0, previous_close: price?.previous_close ?? 0, market_cap: '', pe_ratio: null, forward_pe: null, debt_to_equity: null, roe: null, roce: null, dividend_yield: null, profit_margin: null, operating_margin: null, revenue_growth: null, eps_growth: null, beta: null, analyst_target: null, analyst_rating: null, year_change: null, v_score: null, fundamentals: null, momentum: null, risk: null, sentiment: null, signal: '', has_scores: false, why_explanation: null, description: null }, 'buy');
+    onTrade({ ticker, current_price: batchPrices?.[ticker]?.current_price ?? 0 } as StockData, 'buy');
   };
 
   const renderContent = () => {

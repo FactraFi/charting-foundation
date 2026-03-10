@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   Activity, DollarSign, TrendingUp, Briefcase, Zap, Lock, Sparkles
 } from "lucide-react";
@@ -23,8 +23,14 @@ interface StockDetailViewProps {
 const TradingViewWidget = ({ symbol }: { symbol: string }) => {
   const containerRef = useRef<HTMLDivElement>(null);
 
+  const widgetRef = useRef<any>(null);
+
   useEffect(() => {
     if (!containerRef.current) return;
+    if (widgetRef.current) {
+      try { widgetRef.current.remove(); } catch {}
+      widgetRef.current = null;
+    }
     containerRef.current.innerHTML = "";
 
     const tv = (window as any).TradingView;
@@ -34,7 +40,7 @@ const TradingViewWidget = ({ symbol }: { symbol: string }) => {
       return;
     }
 
-    new tv.widget({
+    widgetRef.current = new tv.widget({
       autosize: true,
       symbol: symbol,
       interval: "D",
@@ -52,6 +58,13 @@ const TradingViewWidget = ({ symbol }: { symbol: string }) => {
       backgroundColor: "#050505",
       gridColor: "rgba(30,33,40,0.6)",
     });
+
+    return () => {
+      if (widgetRef.current) {
+        try { widgetRef.current.remove(); } catch {}
+        widgetRef.current = null;
+      }
+    };
   }, [symbol]);
 
   return (
@@ -66,7 +79,7 @@ const TradingViewWidget = ({ symbol }: { symbol: string }) => {
 /* ── Helper functions ────────────────────────────────── */
 const getPillarLabel = (score: number | null, isRisk = false): string => {
   if (score === null) return 'Pending';
-  if (isRisk) return score <= 30 ? 'Low' : score <= 60 ? 'Moderate' : 'High';
+  if (isRisk) return score >= 70 ? 'Low' : score >= 40 ? 'Moderate' : 'High';
   if (score >= 90) return 'Excellent';
   if (score >= 75) return 'Strong';
   if (score >= 60) return 'Good';
@@ -80,7 +93,7 @@ const deriveMetricLabel = (stock: StockData) => [
   { label: "Growth", val: stock.revenue_growth ? (parseFloat(stock.revenue_growth) > 10 ? "ACCELERATING" : "STEADY") : "N/A", icon: TrendingUp, color: "text-primary" },
   { label: "Profitability", val: stock.profit_margin ? (parseFloat(stock.profit_margin) > 20 ? "STRONG" : "MODERATE") : "N/A", icon: Briefcase, color: "text-foreground" },
   { label: "Technicals", val: stock.signal.toUpperCase().includes("BUY") ? "BULLISH" : stock.signal.toUpperCase().includes("SELL") ? "BEARISH" : "NEUTRAL", icon: Zap, color: stock.signal.includes("Buy") ? "text-primary" : "text-destructive" },
-  { label: "Risk", val: stock.risk !== null ? (stock.risk <= 40 ? "LOW RISK" : stock.risk <= 70 ? "MODERATE" : "HIGH RISK") : "N/A", icon: Lock, color: stock.risk && stock.risk <= 40 ? "text-primary" : "text-yellow-500" },
+  { label: "Risk", val: stock.risk !== null ? (stock.risk >= 70 ? "LOW RISK" : stock.risk >= 40 ? "MODERATE" : "HIGH RISK") : "N/A", icon: Lock, color: stock.risk && stock.risk >= 70 ? "text-primary" : "text-yellow-500" },
 ];
 
 /* ── Sub-components ──────────────────────────────────── */
@@ -99,14 +112,14 @@ const WhyScoreSkeleton = () => (
   </div>
 );
 
-const PillarCard = ({ index, label, score, bullets, compact }: {
+const PillarCard = React.forwardRef<HTMLDivElement, {
   index: string;
   label: string;
   score: number | null;
   bullets: { label: string; text: string }[];
   compact?: boolean;
-}) => (
-  <div className={`rounded-lg bg-foreground/[0.02] border border-foreground/[0.05] ${compact ? 'p-2.5' : 'p-4'}`}>
+}>(({ index, label, score, bullets, compact }, ref) => (
+  <div ref={ref} className={`rounded-lg bg-foreground/[0.02] border border-foreground/[0.05] ${compact ? 'p-2.5' : 'p-4'}`}>
     <h4 className={`text-primary font-bold flex items-center gap-1.5 font-sans ${compact ? 'text-xs mb-1.5' : 'text-lg mb-3'}`}>
       <span className="opacity-50">{index}.</span> {label} ({score ?? '—'}/100)
     </h4>
@@ -119,7 +132,8 @@ const PillarCard = ({ index, label, score, bullets, compact }: {
       ))}
     </ul>
   </div>
-);
+));
+PillarCard.displayName = "PillarCard";
 
 /* ── Main Component ──────────────────────────────────── */
 const StockDetailView = ({ stock, onBack, onTrade }: StockDetailViewProps) => {

@@ -4,6 +4,7 @@ import ReactMarkdown from "react-markdown";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
 import { useConversations } from "@/hooks/use-conversations";
+import { supabase } from "@/integrations/supabase/client";
 
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat`;
 
@@ -16,11 +17,14 @@ async function streamChat({
   onDelta: (text: string) => void;
   onDone: () => void;
 }) {
+  const { data: { session } } = await supabase.auth.getSession();
+  const token = session?.access_token ?? import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+
   const resp = await fetch(CHAT_URL, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+      Authorization: `Bearer ${token}`,
     },
     body: JSON.stringify({ messages }),
   });
@@ -63,11 +67,11 @@ async function streamChat({
   }
 
   if (buffer.trim()) {
-    for (let raw of buffer.split("\n")) {
+    for (const raw of buffer.split("\n")) {
       if (!raw) continue;
-      if (raw.endsWith("\r")) raw = raw.slice(0, -1);
-      if (!raw.startsWith("data: ")) continue;
-      const jsonStr = raw.slice(6).trim();
+      const line2 = raw.endsWith("\r") ? raw.slice(0, -1) : raw;
+      if (!line2.startsWith("data: ")) continue;
+      const jsonStr = line2.slice(6).trim();
       if (jsonStr === "[DONE]") continue;
       try {
         const parsed = JSON.parse(jsonStr);

@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import {
-  LayoutDashboard, Search, Cpu, Workflow, Briefcase, Bell,
+  LayoutDashboard, Search, Cpu, Briefcase, Bell,
   Terminal, LogOut, Menu, X
 } from "lucide-react";
 import { useStockSearch } from "@/hooks/use-stock-data";
@@ -18,11 +18,6 @@ const routes = [
   { path: '/portfolio', label: 'Portfolio', icon: Briefcase },
 ];
 
-const NOTIFICATIONS = [
-  { id: 1, title: 'Welcome to FactraFi', message: 'Start by searching for any stock ticker', time: 'Just now', type: 'info' as const },
-  { id: 2, title: 'Live Data Active', message: 'Real-time prices powered by yFinance', time: '1m ago', type: 'success' as const },
-];
-
 const ModernNavbar = ({ onLogout }: NavbarProps) => {
   const { profile } = useAuth();
   const displayName = profile?.full_name || profile?.email || "User";
@@ -35,6 +30,7 @@ const ModernNavbar = ({ onLogout }: NavbarProps) => {
   const [showNotifications, setShowNotifications] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const searchRef = useRef<HTMLDivElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
   const notifRef = useRef<HTMLDivElement>(null);
   const profileRef = useRef<HTMLDivElement>(null);
 
@@ -48,6 +44,19 @@ const ModernNavbar = ({ onLogout }: NavbarProps) => {
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  // Wire ⌘K / Ctrl+K shortcut
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        searchInputRef.current?.focus();
+        setIsSearchFocused(true);
+      }
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
   }, []);
 
   return (
@@ -89,6 +98,7 @@ const ModernNavbar = ({ onLogout }: NavbarProps) => {
               <div className="flex items-center bg-card border border-border rounded-full px-3 py-1.5 w-64 hover:border-muted-foreground focus-within:border-primary transition-colors duration-300">
                 <Search size={14} className="text-muted-foreground mr-2" />
                 <input
+                  ref={searchInputRef}
                   type="text"
                   placeholder="Search any stock..."
                   className="bg-transparent border-none text-xs text-foreground focus:outline-none w-full placeholder:text-muted-foreground"
@@ -141,28 +151,15 @@ const ModernNavbar = ({ onLogout }: NavbarProps) => {
                 onClick={() => setShowNotifications(!showNotifications)}
               >
                 <Bell size={20} />
-                <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-primary rounded-full border border-background animate-pulse" />
               </button>
 
               {showNotifications && (
                 <div className="absolute top-full right-0 mt-2 w-80 bg-card border border-border rounded-xl shadow-2xl overflow-hidden z-50 animate-fade-in-up">
-                  <div className="p-3 border-b border-border flex justify-between items-center">
+                  <div className="p-3 border-b border-border">
                     <span className="text-sm font-bold text-foreground">Notifications</span>
-                    <span className="text-[10px] text-primary cursor-pointer hover:underline">Mark all read</span>
                   </div>
-                  <div className="max-h-64 overflow-y-auto">
-                    {NOTIFICATIONS.map(notif => (
-                      <div key={notif.id} className="p-3 hover:bg-foreground/5 border-b border-border last:border-0 cursor-pointer">
-                        <div className="flex gap-3">
-                          <div className={`w-2 h-2 mt-1.5 rounded-full shrink-0 ${notif.type === 'success' ? 'bg-primary' : 'bg-info'}`} />
-                          <div>
-                            <h4 className="text-sm font-medium text-foreground">{notif.title}</h4>
-                            <p className="text-xs text-muted-foreground mt-0.5">{notif.message}</p>
-                            <span className="text-[10px] text-muted-foreground/60 mt-2 block">{notif.time}</span>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
+                  <div className="p-8 text-center text-sm text-muted-foreground">
+                    No notifications yet
                   </div>
                 </div>
               )}
