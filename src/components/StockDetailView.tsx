@@ -291,6 +291,9 @@ const StockDetailView = ({ stock, onBack, onTrade }: StockDetailViewProps) => {
       <div className="bg-background border border-border rounded-xl p-5 relative overflow-hidden group">
         <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
         <h3 className="text-lg font-bold text-foreground tracking-tight mb-4 relative z-10 font-sans">V-Score History</h3>
+        {historyLoading ? (
+          <Skeleton className="h-64 rounded-lg" />
+        ) : (
         <div className="h-64 relative z-10">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={vScoreHistory} barGap={2}>
