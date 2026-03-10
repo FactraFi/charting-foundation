@@ -132,9 +132,8 @@ const DashboardView = ({ setActiveTab, onSelectStock, onTrade }: DashboardViewPr
   const cashBalance = profile?.cash_balance ?? 0;
   const { totalMarketValue } = useHoldingsWithPrices(holdings ?? []);
   const totalEquity = cashBalance + totalMarketValue;
-  const { data: startOfDayLiquidity } = useStartOfDayLiquidity();
-  const daysPnl = startOfDayLiquidity != null ? totalEquity - startOfDayLiquidity : 0;
-  const daysPnlPct = startOfDayLiquidity ? (daysPnl / startOfDayLiquidity) * 100 : 0;
+  const { pnl: portfolioPnl, pct: portfolioPnlPct } = computePortfolioPnl(totalEquity);
+  const { data: xirr } = usePortfolioXirr(totalEquity);
   const [markerType, setMarkerType] = useState('technical');
   const [isMarkersDropdownOpen, setIsMarkersDropdownOpen] = useState(false);
   const markersDropdownRef = useRef<HTMLDivElement>(null);
