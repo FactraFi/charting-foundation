@@ -210,8 +210,7 @@ const StockDetailView = ({ stock, onBack, onTrade }: StockDetailViewProps) => {
         </div>
 
         {/* Right Panel: Why This Score */}
-        <div className="lg:w-[58%] bg-background border border-border rounded-xl p-4 relative overflow-hidden group flex flex-col">
-          <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
+        <div className="lg:w-[58%] flex flex-col">
 
           <div className="flex justify-between items-center mb-3 relative z-10">
             <h3 className="text-lg font-bold text-foreground tracking-tight underline decoration-primary/30 underline-offset-4 font-sans">Why This Score?</h3>
