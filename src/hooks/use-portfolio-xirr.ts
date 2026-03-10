@@ -1,15 +1,14 @@
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { calcXirr, type CashFlow } from "@/lib/xirr";
 
 /**
- * Fetches ALL user transactions and computes XIRR (annualized return).
- * Cash flows:
- *   - Initial deposit of $10,000 on profile creation date (negative)
- *   - Each BUY  → negative (money spent)
- *   - Each SELL → positive (money received)
- *   - Terminal value = current net liquidity (positive, today)
+ * Computes XIRR (annualized return) using a closed-system 2-flow model:
+ *   Flow 1: −$10,000 on account creation date
+ *   Flow 2: +currentNetLiquidity today
+ *
+ * Internal trades (buys/sells) are NOT external cash flows — they're
+ * rebalancing within the same $10k deposit.
  */
 export const usePortfolioXirr = (currentNetLiquidity: number) => {
   const { user, profile } = useAuth();
@@ -19,32 +18,11 @@ export const usePortfolioXirr = (currentNetLiquidity: number) => {
     queryFn: async () => {
       if (!profile) return null;
 
-      // Fetch ALL transactions (no limit)
-      const { data: txns, error } = await supabase
-        .from("transactions")
-        .select("type, shares, price, created_at")
-        .eq("user_id", user!.id)
-        .order("created_at", { ascending: true });
-
-      if (error) throw error;
-
       const accountCreated = new Date(profile.created_at);
       const flows: CashFlow[] = [
-        { amount: -10_000, date: accountCreated }, // initial deposit
+        { amount: -10_000, date: accountCreated },
+        { amount: currentNetLiquidity, date: new Date() },
       ];
-
-      for (const tx of txns ?? []) {
-        const total = tx.shares * tx.price;
-        const date = new Date(tx.created_at);
-        if (tx.type === "buy") {
-          flows.push({ amount: -total, date });
-        } else if (tx.type === "sell") {
-          flows.push({ amount: total, date });
-        }
-      }
-
-      // Terminal value (today)
-      flows.push({ amount: currentNetLiquidity, date: new Date() });
 
       return calcXirr(flows);
     },

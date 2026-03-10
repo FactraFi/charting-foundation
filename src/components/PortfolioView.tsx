@@ -17,7 +17,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { usePortfolio, useTransactions, type DbHolding } from "@/hooks/use-portfolio";
 import { useHoldingsWithPrices } from "@/hooks/use-holdings-prices";
 import { usePortfolioHistory } from "@/hooks/use-portfolio-history";
-import { useStartOfDayLiquidity } from "@/hooks/use-start-of-day-liquidity";
+import { usePortfolioXirr } from "@/hooks/use-portfolio-xirr";
+import { computePortfolioPnl } from "@/lib/xirr";
 import { useQueuedOrders, useCancelOrder } from "@/hooks/use-orders";
 import { usePortfolioHealth } from "@/hooks/use-portfolio-health";
 import {
@@ -116,18 +117,14 @@ const PortfolioView = ({ onSelectStock, onTrade }: PortfolioViewProps) => {
   } = useHoldingsWithPrices(holdings);
 
   const { data: historyData = [] } = usePortfolioHistory(timePeriod);
-  const { data: startOfDayLiquidity } = useStartOfDayLiquidity();
+  const { data: xirr } = usePortfolioXirr(cashBalance + totalMarketValue);
   const { data: queuedOrders = [] } = useQueuedOrders();
   const cancelOrder = useCancelOrder();
   const { data: healthData } = usePortfolioHealth();
 
-  // Phase 2: KPI calculations
+  // KPI calculations
   const netLiquidity = cashBalance + totalMarketValue;
-  const sodLiq = startOfDayLiquidity ?? null;
-  const daysPnl = sodLiq != null ? netLiquidity - sodLiq : 0;
-  const daysPnlPct = sodLiq != null && sodLiq !== 0 ? (daysPnl / sodLiq) * 100 : 0;
-  const totalReturn = netLiquidity - INITIAL_CAPITAL;
-  const totalReturnPct = (totalReturn / INITIAL_CAPITAL) * 100;
+  const { pnl: portfolioPnl, pct: portfolioPnlPct } = computePortfolioPnl(netLiquidity);
 
   const pieData = holdings.map((h) => {
     const stock = stockDataMap.get(h.ticker);
@@ -165,13 +162,13 @@ const PortfolioView = ({ onSelectStock, onTrade }: PortfolioViewProps) => {
 
         <Card className="border-border hover-glow">
           <CardContent className="p-4 flex items-center gap-3">
-            <div className={`p-2 rounded-lg bg-secondary ${daysPnl >= 0 ? "text-primary" : "text-destructive"}`}>
-              {daysPnl >= 0 ? <ArrowUpRight size={18} /> : <ArrowDownRight size={18} />}
+            <div className={`p-2 rounded-lg bg-secondary ${portfolioPnl >= 0 ? "text-primary" : "text-destructive"}`}>
+              {portfolioPnl >= 0 ? <ArrowUpRight size={18} /> : <ArrowDownRight size={18} />}
             </div>
             <div>
-              <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">Day's P&L</p>
-              <p className={`text-lg font-bold font-sans tabular-nums ${daysPnl >= 0 ? "text-primary" : "text-destructive"}`}>
-                {sodLiq != null ? `${daysPnl >= 0 ? "+" : ""}$${daysPnl.toFixed(2)}` : "--"} {sodLiq != null && <span className="text-xs">({daysPnlPct >= 0 ? "+" : ""}{daysPnlPct.toFixed(2)}%)</span>}
+              <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">Portfolio P&L</p>
+              <p className={`text-lg font-bold font-sans tabular-nums ${portfolioPnl >= 0 ? "text-primary" : "text-destructive"}`}>
+                {portfolioPnl >= 0 ? "+" : ""}${Math.abs(portfolioPnl).toFixed(2)} <span className="text-xs">({portfolioPnlPct >= 0 ? "+" : ""}{portfolioPnlPct.toFixed(2)}%)</span>
               </p>
             </div>
           </CardContent>
@@ -179,13 +176,13 @@ const PortfolioView = ({ onSelectStock, onTrade }: PortfolioViewProps) => {
 
         <Card className="border-border hover-glow">
           <CardContent className="p-4 flex items-center gap-3">
-            <div className={`p-2 rounded-lg bg-secondary ${totalReturn >= 0 ? "text-primary" : "text-destructive"}`}>
+            <div className={`p-2 rounded-lg bg-secondary ${xirr != null && xirr >= 0 ? "text-primary" : xirr != null ? "text-destructive" : "text-muted-foreground"}`}>
               <TrendingUp size={18} />
             </div>
             <div>
-              <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">Total Return</p>
-              <p className={`text-lg font-bold font-sans tabular-nums ${totalReturn >= 0 ? "text-primary" : "text-destructive"}`}>
-                {totalReturn >= 0 ? "+" : ""}${totalReturn.toFixed(2)} <span className="text-xs">({totalReturnPct >= 0 ? "+" : ""}{totalReturnPct.toFixed(1)}%)</span>
+              <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">Portfolio XIRR</p>
+              <p className={`text-lg font-bold font-sans tabular-nums ${xirr != null && xirr >= 0 ? "text-primary" : xirr != null ? "text-destructive" : "text-muted-foreground"}`}>
+                {xirr != null ? `${xirr >= 0 ? "+" : ""}${(xirr * 100).toFixed(1)}%` : "--"} <span className="text-xs">Annualized</span>
               </p>
             </div>
           </CardContent>
