@@ -11,6 +11,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useWhyScore } from "@/hooks/use-why-score";
 import type { WhyScoreData } from "@/hooks/use-why-score";
 import type { StockData } from "@/lib/api";
+import { useScoreHistory } from "@/hooks/use-score-history";
 
 interface StockDetailViewProps {
   stock: StockData;
