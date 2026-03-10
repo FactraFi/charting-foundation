@@ -285,84 +285,87 @@ const StockDetailView = ({ stock, onBack, onTrade }: StockDetailViewProps) => {
         </div>
       </div>
 
-      {/* ── V-Score History ──────────────────────────── */}
-      <div className="bg-background border border-border rounded-xl p-5 relative overflow-hidden group">
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
-        <div className="flex items-center justify-between mb-4 relative z-10">
-          <h3 className="text-lg font-bold text-foreground tracking-tight font-sans">V-Score History</h3>
-          <div className="flex gap-1">
-            {[30, 60, 90].map((d) => (
+      {/* ── Side-by-Side: V-Score History + Price Chart ── */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {/* Left: V-Score History */}
+        <div className="bg-background border border-border rounded-xl p-5 relative overflow-hidden group flex flex-col">
+          <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
+          <div className="flex items-center justify-between mb-4 relative z-10">
+            <h3 className="text-lg font-bold text-foreground tracking-tight font-sans">V-Score History</h3>
+            <div className="flex gap-1">
+              {[30, 60, 90].map((d) => (
+                <button
+                  key={d}
+                  onClick={() => setDays(d)}
+                  className={`px-3 py-1 text-xs font-bold rounded-full border transition-colors ${
+                    days === d
+                      ? "bg-primary text-primary-foreground border-primary"
+                      : "bg-transparent text-muted-foreground border-border hover:border-primary/50"
+                  }`}
+                >
+                  {d}D
+                </button>
+              ))}
+            </div>
+          </div>
+          {historyLoading ? (
+            <Skeleton className="h-56 rounded-lg flex-1" />
+          ) : !scoreHistory || scoreHistory.length === 0 ? (
+            <div className="h-56 flex items-center justify-center text-muted-foreground text-sm flex-1">No historical data available.</div>
+          ) : (
+          <div className="h-56 relative z-10 flex-1">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={scoreHistory}>
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                <XAxis dataKey="name" tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 10 }} />
+                <YAxis domain={[0, 100]} tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 10 }} />
+                <Tooltip
+                  contentStyle={{ backgroundColor: "hsl(var(--background))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 11 }}
+                  labelStyle={{ color: "hsl(var(--foreground))" }}
+                />
+                {visibleLines.has("Total") && <Line type="monotone" dataKey="Total" stroke="hsl(var(--primary))" strokeWidth={2} dot={false} />}
+                {visibleLines.has("Fundamentals") && <Line type="monotone" dataKey="Fundamentals" stroke="hsl(142, 71%, 45%)" strokeWidth={1.5} dot={false} />}
+                {visibleLines.has("Momentum") && <Line type="monotone" dataKey="Momentum" stroke="hsl(188, 85%, 50%)" strokeWidth={1.5} dot={false} />}
+                {visibleLines.has("Risk") && <Line type="monotone" dataKey="Risk" stroke="hsl(38, 92%, 50%)" strokeWidth={1.5} dot={false} />}
+                {visibleLines.has("Sentiment") && <Line type="monotone" dataKey="Sentiment" stroke="hsl(263, 70%, 58%)" strokeWidth={1.5} dot={false} />}
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+          )}
+          {/* Toggle legend */}
+          <div className="flex flex-wrap gap-2 mt-3 relative z-10">
+            {([
+              { key: "Total", color: "hsl(var(--primary))" },
+              { key: "Fundamentals", color: "hsl(142, 71%, 45%)" },
+              { key: "Momentum", color: "hsl(188, 85%, 50%)" },
+              { key: "Risk", color: "hsl(38, 92%, 50%)" },
+              { key: "Sentiment", color: "hsl(263, 70%, 58%)" },
+            ] as const).map(({ key, color }) => (
               <button
-                key={d}
-                onClick={() => setDays(d)}
-                className={`px-3 py-1 text-xs font-bold rounded-full border transition-colors ${
-                  days === d
-                    ? "bg-primary text-primary-foreground border-primary"
-                    : "bg-transparent text-muted-foreground border-border hover:border-primary/50"
+                key={key}
+                onClick={() => toggleLine(key)}
+                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[11px] font-semibold transition-all ${
+                  visibleLines.has(key)
+                    ? "border-border text-foreground"
+                    : "border-transparent text-muted-foreground/40"
                 }`}
               >
-                {d}D
+                <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: visibleLines.has(key) ? color : "hsl(var(--muted))" }} />
+                {key}
               </button>
             ))}
           </div>
         </div>
-        {historyLoading ? (
-          <Skeleton className="h-64 rounded-lg" />
-        ) : !scoreHistory || scoreHistory.length === 0 ? (
-          <div className="h-64 flex items-center justify-center text-muted-foreground text-sm">No historical data available.</div>
-        ) : (
-        <div className="h-64 relative z-10">
-          <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={scoreHistory}>
-              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-              <XAxis dataKey="name" tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 10 }} />
-              <YAxis domain={[0, 100]} tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 10 }} />
-              <Tooltip
-                contentStyle={{ backgroundColor: "hsl(var(--background))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 11 }}
-                labelStyle={{ color: "hsl(var(--foreground))" }}
-              />
-              {visibleLines.has("Total") && <Line type="monotone" dataKey="Total" stroke="hsl(var(--primary))" strokeWidth={2} dot={false} />}
-              {visibleLines.has("Fundamentals") && <Line type="monotone" dataKey="Fundamentals" stroke="hsl(142, 71%, 45%)" strokeWidth={1.5} dot={false} />}
-              {visibleLines.has("Momentum") && <Line type="monotone" dataKey="Momentum" stroke="hsl(188, 85%, 50%)" strokeWidth={1.5} dot={false} />}
-              {visibleLines.has("Risk") && <Line type="monotone" dataKey="Risk" stroke="hsl(38, 92%, 50%)" strokeWidth={1.5} dot={false} />}
-              {visibleLines.has("Sentiment") && <Line type="monotone" dataKey="Sentiment" stroke="hsl(263, 70%, 58%)" strokeWidth={1.5} dot={false} />}
-            </LineChart>
-          </ResponsiveContainer>
-        </div>
-        )}
-        {/* Toggle legend */}
-        <div className="flex flex-wrap gap-2 mt-3 relative z-10">
-          {([
-            { key: "Total", color: "hsl(var(--primary))" },
-            { key: "Fundamentals", color: "hsl(142, 71%, 45%)" },
-            { key: "Momentum", color: "hsl(188, 85%, 50%)" },
-            { key: "Risk", color: "hsl(38, 92%, 50%)" },
-            { key: "Sentiment", color: "hsl(263, 70%, 58%)" },
-          ] as const).map(({ key, color }) => (
-            <button
-              key={key}
-              onClick={() => toggleLine(key)}
-              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[11px] font-semibold transition-all ${
-                visibleLines.has(key)
-                  ? "border-border text-foreground"
-                  : "border-transparent text-muted-foreground/40"
-              }`}
-            >
-              <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: visibleLines.has(key) ? color : "hsl(var(--muted))" }} />
-              {key}
-            </button>
-          ))}
-        </div>
-      </div>
 
-      {/* ── Price Chart (TradingView) ────────────────── */}
-      <div className="bg-background border border-border rounded-xl overflow-hidden relative group">
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none z-0" />
-        <div className="p-5 pb-0 relative z-10">
-          <h3 className="text-lg font-bold text-foreground tracking-tight font-sans">Price Chart</h3>
-        </div>
-        <div className="h-[480px] relative z-10">
-          <TradingViewWidget symbol={stock.ticker} />
+        {/* Right: Price Chart */}
+        <div className="bg-background border border-border rounded-xl overflow-hidden relative group flex flex-col">
+          <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none z-0" />
+          <div className="p-5 pb-0 relative z-10">
+            <h3 className="text-lg font-bold text-foreground tracking-tight font-sans">Price Chart</h3>
+          </div>
+          <div className="flex-1 min-h-[380px] relative z-10">
+            <TradingViewWidget symbol={stock.ticker} />
+          </div>
         </div>
       </div>
 
