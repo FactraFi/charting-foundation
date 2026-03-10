@@ -1,9 +1,9 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Activity, DollarSign, TrendingUp, Briefcase, Zap, Lock, Sparkles
 } from "lucide-react";
 import {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
+  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer
 } from "recharts";
 import MarkerSection from "@/components/MarkerSection";

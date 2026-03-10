@@ -5,23 +5,23 @@ import { format, subDays } from "date-fns";
 export interface ScoreHistoryPoint {
   name: string;
   date: string;
+  Total: number;
   Fundamentals: number;
   Momentum: number;
   Risk: number;
   Sentiment: number;
 }
 
-export const useScoreHistory = (ticker: string | undefined, days = 20) =>
+export const useScoreHistory = (ticker: string | undefined, days = 30) =>
   useQuery<ScoreHistoryPoint[]>({
     queryKey: ["score-history", ticker, days],
     queryFn: async () => {
       if (!ticker) return [];
       const cutoff = subDays(new Date(), days).toISOString().split("T")[0];
 
-      // Use .from() with type assertion since score_history may not be in generated types yet
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from("score_history")
-        .select("snapshot_date, fundamentals, momentum, risk, sentiment")
+        .select("snapshot_date, v_score, fundamentals, momentum, risk, sentiment")
         .eq("ticker", ticker)
         .gte("snapshot_date", cutoff)
         .order("snapshot_date", { ascending: true })
@@ -30,9 +30,10 @@ export const useScoreHistory = (ticker: string | undefined, days = 20) =>
       if (error) throw error;
       if (!data || data.length === 0) return [];
 
-      return (data as any[]).map((row) => ({
+      return data.map((row) => ({
         name: format(new Date(row.snapshot_date + "T00:00:00"), "MMM d"),
         date: row.snapshot_date,
+        Total: row.v_score ?? 0,
         Fundamentals: row.fundamentals ?? 0,
         Momentum: row.momentum ?? 0,
         Risk: row.risk ?? 0,
