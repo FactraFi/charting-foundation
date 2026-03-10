@@ -110,9 +110,7 @@ const WhyScoreSkeleton = () => (
       ))}
     </div>
   </div>
-);
 
-import React from "react";
 
 const PillarCard = React.forwardRef<HTMLDivElement, {
   index: string;
