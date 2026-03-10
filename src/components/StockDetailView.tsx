@@ -274,6 +274,7 @@ const StockDetailView = ({ stock, onBack, onTrade }: StockDetailViewProps) => {
             )}
           </div>
         </div>
+        </div>
       </div>
 
       {/* ── V-Score History ──────────────────────────── */}
