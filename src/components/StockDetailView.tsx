@@ -23,8 +23,14 @@ interface StockDetailViewProps {
 const TradingViewWidget = ({ symbol }: { symbol: string }) => {
   const containerRef = useRef<HTMLDivElement>(null);
 
+  const widgetRef = useRef<any>(null);
+
   useEffect(() => {
     if (!containerRef.current) return;
+    if (widgetRef.current) {
+      try { widgetRef.current.remove(); } catch {}
+      widgetRef.current = null;
+    }
     containerRef.current.innerHTML = "";
 
     const tv = (window as any).TradingView;
@@ -34,7 +40,7 @@ const TradingViewWidget = ({ symbol }: { symbol: string }) => {
       return;
     }
 
-    new tv.widget({
+    widgetRef.current = new tv.widget({
       autosize: true,
       symbol: symbol,
       interval: "D",
@@ -52,6 +58,13 @@ const TradingViewWidget = ({ symbol }: { symbol: string }) => {
       backgroundColor: "#050505",
       gridColor: "rgba(30,33,40,0.6)",
     });
+
+    return () => {
+      if (widgetRef.current) {
+        try { widgetRef.current.remove(); } catch {}
+        widgetRef.current = null;
+      }
+    };
   }, [symbol]);
 
   return (
