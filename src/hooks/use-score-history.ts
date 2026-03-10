@@ -25,7 +25,7 @@ export const useScoreHistory = (ticker: string | undefined, days = 30) =>
         .eq("ticker", ticker)
         .gte("snapshot_date", cutoff)
         .order("snapshot_date", { ascending: true })
-        .limit(days);
+        .limit(days + 5);
 
       if (error) throw error;
       if (!data || data.length === 0) return [];
