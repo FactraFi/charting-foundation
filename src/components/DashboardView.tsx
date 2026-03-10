@@ -164,13 +164,13 @@ const DashboardView = ({ setActiveTab, onSelectStock, onTrade }: DashboardViewPr
 
   const getPillarColor = (score: number | null, isRisk = false) => {
     if (score === null) return 'text-muted-foreground';
-    if (isRisk) return score <= 40 ? 'text-primary' : score <= 70 ? 'text-yellow-500' : 'text-destructive';
+    if (isRisk) return score >= 70 ? 'text-primary' : score >= 40 ? 'text-yellow-500' : 'text-destructive';
     return score >= 80 ? 'text-primary' : score >= 60 ? 'text-yellow-500' : 'text-destructive';
   };
 
   const getPillarLabel = (score: number | null, isRisk = false): string => {
     if (score === null) return 'Pending';
-    if (isRisk) return score <= 30 ? 'Low' : score <= 60 ? 'Moderate' : 'High';
+    if (isRisk) return score >= 70 ? 'Low' : score >= 40 ? 'Moderate' : 'High';
     if (score >= 90) return 'Excellent';
     if (score >= 75) return 'Strong';
     if (score >= 60) return 'Good';
