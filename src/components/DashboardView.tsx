@@ -13,7 +13,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePortfolio } from "@/hooks/use-portfolio";
 import { useHoldingsWithPrices } from "@/hooks/use-holdings-prices";
-import { useStartOfDayLiquidity } from "@/hooks/use-start-of-day-liquidity";
+import { usePortfolioXirr } from "@/hooks/use-portfolio-xirr";
+import { computePortfolioPnl } from "@/lib/xirr";
 
 interface DashboardViewProps {
   setActiveTab: (tab: string) => void;
@@ -131,9 +132,8 @@ const DashboardView = ({ setActiveTab, onSelectStock, onTrade }: DashboardViewPr
   const cashBalance = profile?.cash_balance ?? 0;
   const { totalMarketValue } = useHoldingsWithPrices(holdings ?? []);
   const totalEquity = cashBalance + totalMarketValue;
-  const { data: startOfDayLiquidity } = useStartOfDayLiquidity();
-  const daysPnl = startOfDayLiquidity != null ? totalEquity - startOfDayLiquidity : 0;
-  const daysPnlPct = startOfDayLiquidity ? (daysPnl / startOfDayLiquidity) * 100 : 0;
+  const { pnl: portfolioPnl, pct: portfolioPnlPct } = computePortfolioPnl(totalEquity);
+  const { data: xirr } = usePortfolioXirr(totalEquity);
   const [markerType, setMarkerType] = useState('technical');
   const [isMarkersDropdownOpen, setIsMarkersDropdownOpen] = useState(false);
   const markersDropdownRef = useRef<HTMLDivElement>(null);
@@ -217,12 +217,12 @@ const DashboardView = ({ setActiveTab, onSelectStock, onTrade }: DashboardViewPr
         </div>
         <div className="p-6 hover:bg-foreground/[0.03] transition-colors cursor-default group">
           <div className="text-muted-foreground text-xs uppercase tracking-wider mb-2 flex items-center gap-2 group-hover:text-foreground transition-colors">
-            <ArrowUpRight size={14} /> Day's P&L
+            <ArrowUpRight size={14} /> Portfolio P&L
           </div>
-          <div className={`text-2xl font-bold mb-1 tracking-tight ${daysPnl >= 0 ? 'text-primary' : 'text-destructive'}`}>
-            {startOfDayLiquidity != null ? `${daysPnl >= 0 ? '+' : ''}$${Math.abs(daysPnl).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '--'}
+          <div className={`text-2xl font-bold mb-1 tracking-tight ${portfolioPnl >= 0 ? 'text-primary' : 'text-destructive'}`}>
+            {`${portfolioPnl >= 0 ? '+' : ''}$${Math.abs(portfolioPnl).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
           </div>
-          <div className="text-sm text-muted-foreground">{startOfDayLiquidity != null ? `${daysPnlPct >= 0 ? '+' : ''}${daysPnlPct.toFixed(2)}% Today` : 'No trades yet'}</div>
+          <div className="text-sm text-muted-foreground">{`${portfolioPnlPct >= 0 ? '+' : ''}${portfolioPnlPct.toFixed(2)}% vs. $10,000`}</div>
         </div>
         <div className="p-6 hover:bg-foreground/[0.03] transition-colors cursor-default group">
           <div className="text-muted-foreground text-xs uppercase tracking-wider mb-2 flex items-center gap-2 group-hover:text-foreground transition-colors">
@@ -237,10 +237,12 @@ const DashboardView = ({ setActiveTab, onSelectStock, onTrade }: DashboardViewPr
         >
           <div>
             <div className="text-muted-foreground text-xs uppercase tracking-wider mb-2 flex items-center gap-2 group-hover:text-foreground transition-colors">
-              <Briefcase size={14} /> Positions
+              <TrendingUp size={14} /> Portfolio XIRR
             </div>
-            <div className="text-2xl font-bold text-foreground tracking-tight">{holdings?.length ?? 0}</div>
-            <div className="text-sm text-muted-foreground">Active holdings</div>
+            <div className={`text-2xl font-bold tracking-tight ${xirr != null && xirr >= 0 ? 'text-primary' : xirr != null ? 'text-destructive' : 'text-muted-foreground'}`}>
+              {xirr != null ? `${xirr >= 0 ? '+' : ''}${(xirr * 100).toFixed(1)}%` : '--'}
+            </div>
+            <div className="text-sm text-muted-foreground">Annualized return</div>
           </div>
           <div className="h-10 w-10 rounded-full border border-border flex items-center justify-center text-muted-foreground group-hover:text-foreground group-hover:border-primary group-hover:bg-primary/10 group-hover:scale-110 transition-all duration-300">
             <ChevronRight size={20} />
