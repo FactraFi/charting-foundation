@@ -123,8 +123,9 @@ const PortfolioView = ({ onSelectStock, onTrade }: PortfolioViewProps) => {
 
   // Phase 2: KPI calculations
   const netLiquidity = cashBalance + totalMarketValue;
-  const daysPnl = netLiquidity - startOfDayLiquidity;
-  const daysPnlPct = startOfDayLiquidity !== 0 ? (daysPnl / startOfDayLiquidity) * 100 : 0;
+  const sodLiq = startOfDayLiquidity ?? null;
+  const daysPnl = sodLiq != null ? netLiquidity - sodLiq : 0;
+  const daysPnlPct = sodLiq != null && sodLiq !== 0 ? (daysPnl / sodLiq) * 100 : 0;
   const totalReturn = netLiquidity - INITIAL_CAPITAL;
   const totalReturnPct = (totalReturn / INITIAL_CAPITAL) * 100;
 
