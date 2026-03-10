@@ -116,7 +116,7 @@ const PortfolioView = ({ onSelectStock, onTrade }: PortfolioViewProps) => {
   } = useHoldingsWithPrices(holdings);
 
   const { data: historyData = [] } = usePortfolioHistory(timePeriod);
-  const { data: startOfDayLiquidity = INITIAL_CAPITAL } = useStartOfDayLiquidity();
+  const { data: startOfDayLiquidity } = useStartOfDayLiquidity();
   const { data: queuedOrders = [] } = useQueuedOrders();
   const cancelOrder = useCancelOrder();
   const { data: healthData } = usePortfolioHealth();
