@@ -17,7 +17,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { usePortfolio, useTransactions, type DbHolding } from "@/hooks/use-portfolio";
 import { useHoldingsWithPrices } from "@/hooks/use-holdings-prices";
 import { usePortfolioHistory } from "@/hooks/use-portfolio-history";
-import { useStartOfDayLiquidity } from "@/hooks/use-start-of-day-liquidity";
+import { usePortfolioXirr } from "@/hooks/use-portfolio-xirr";
+import { computePortfolioPnl } from "@/lib/xirr";
 import { useQueuedOrders, useCancelOrder } from "@/hooks/use-orders";
 import { usePortfolioHealth } from "@/hooks/use-portfolio-health";
 import {
