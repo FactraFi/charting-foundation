@@ -1,47 +1,50 @@
 
 
-## Fix 4 Issues: Unused Imports, Missing Trade Buttons, Order Side Badge
+## Fix Score Breakdown Layout & Restore Missing Sections
 
-### Issue 1: Add Buy/Sell Buttons to StockDetailView
+### Problems Identified
+1. **Pillar cards** are in a 2x2 grid — need to be in a **single row of 4** as shown in the reference diagram
+2. **Score box is oversized** — the `text-6xl` score and `max-w-sm` box take too much vertical space
+3. **Missing sections below** — V-Score History chart, TradingView price chart, and metric strip cards were removed during prior edits and need to be restored
 
-**Problem**: The `onTrade` prop is accepted but never destructured or used -- users cannot trade from the stock detail page.
+### Changes — `src/components/StockDetailView.tsx`
 
-**Fix in `src/components/StockDetailView.tsx`**:
-- Line 122: Destructure `onTrade` from props (currently only `stock` and `onBack` are destructured)
-- Add two trade buttons (Buy / Sell) next to the Watchlist and Refresh buttons in the MarkerSection area. Since MarkerSection doesn't accept an `onTrade` prop, the buttons will be added directly in StockDetailView, right below the MarkerSection component (line 145).
+**1. Shrink the FactraFi Score box**
+- Reduce score font from `text-6xl` to `text-5xl`
+- Reduce box padding from `p-6` to `p-4`
+- Remove `max-w-sm` constraint, let the box fill its container width
+- Tighten vertical spacing
 
-The buttons will be styled consistently with the app's design system using the primary color for Buy and destructive for Sell.
+**2. Pillar cards: 4 columns in one row**
+- Change grid from `grid-cols-2` to `grid-cols-4` on desktop
+- Reduce pillar card padding from `p-4` to `p-3`
+- Reduce score font from `text-3xl` to `text-2xl`
+- Keep 2-col on mobile
 
-### Issue 2: Remove Unused Imports in ModernNavbar
+**3. Adjust connector lines**
+- Update the horizontal/vertical connector percentages to distribute evenly across 4 columns in a single row
 
-**Problem**: `Settings`, `User`, `CreditCard` are imported but never used.
+**4. Restore missing sections after the score panel**
+- **V-Score History** — bar chart (Recharts) showing pillar trends over 20 days (using existing simulated `vScoreHistory` data)
+- **TradingView Price Chart** — the `TradingViewWidget` component already exists in the file, just needs to be rendered in a section
+- **Metrics Strip** — row of 6 metric cards (Performance, Valuation, Growth, Profitability, Technicals, Risk) using the existing `deriveMetricLabel` function and `metricsStrip` data
 
-**Fix in `src/components/ModernNavbar.tsx`**:
-- Line 5: Remove `Settings`, `User`, `CreditCard` from the lucide-react import statement.
-
-### Issue 3: Remove Unused Import in ScreenerView
-
-**Problem**: `Star` is imported but never used.
-
-**Fix in `src/components/ScreenerView.tsx`**:
-- Line 2: Remove `Star` from the lucide-react import statement.
-
-### Issue 4: Fix Order Side Badge Case Mismatch in PortfolioView
-
-**Problem**: `order.side === "buy"` fails because the database stores sides as uppercase ("BUY"/"SELL").
-
-**Fix in `src/components/PortfolioView.tsx`**:
-- Line 406: Change `order.side === "buy"` to `order.side.toUpperCase() === "BUY"` so the badge correctly shows green for buy orders and red for sell orders.
-
----
-
-### Technical Summary
-
-| File | Line(s) | Change |
-|------|---------|--------|
-| `src/components/StockDetailView.tsx` | 122 | Destructure `onTrade` from props |
-| `src/components/StockDetailView.tsx` | ~145 | Add Buy/Sell buttons below MarkerSection |
-| `src/components/ModernNavbar.tsx` | 5 | Remove `Settings`, `User`, `CreditCard` imports |
-| `src/components/ScreenerView.tsx` | 2 | Remove `Star` import |
-| `src/components/PortfolioView.tsx` | 406 | Case-insensitive side comparison |
+### Layout Result
+```text
+┌─────────────────────────────────────────────────────────────────┐
+│  MarkerSection (3-column header)                                │
+├────────────────────────────┬────────────────────────────────────┤
+│  FactraFi Score (compact)  │  Why This Score? (AI Enhanced)     │
+│       66 /100              │  Summary + 4 pillar analysis cards │
+│  ──connector lines──       │                                    │
+│  FUND  RISK  SENT  MOM    │                                    │
+│  (all 4 in one row)       │                                    │
+├────────────────────────────┴────────────────────────────────────┤
+│  V-Score History (bar chart)                                    │
+├─────────────────────────────────────────────────────────────────┤
+│  Price Chart (TradingView)                                      │
+├─────────────────────────────────────────────────────────────────┤
+│  Metric Cards Strip (6 cards in a row)                          │
+└─────────────────────────────────────────────────────────────────┘
+```
 
