@@ -98,19 +98,20 @@ const WhyScoreSkeleton = () => (
   </div>
 );
 
-const PillarCard = ({ index, label, score, bullets }: {
+const PillarCard = ({ index, label, score, bullets, compact }: {
   index: string;
   label: string;
   score: number | null;
   bullets: { label: string; text: string }[];
+  compact?: boolean;
 }) => (
-  <div className="p-4 rounded-lg bg-foreground/[0.02] border border-foreground/[0.05]">
-    <h4 className="text-primary font-bold mb-3 text-lg flex items-center gap-2 font-sans">
+  <div className={`rounded-lg bg-foreground/[0.02] border border-foreground/[0.05] ${compact ? 'p-3' : 'p-4'}`}>
+    <h4 className={`text-primary font-bold flex items-center gap-2 font-sans ${compact ? 'text-sm mb-2' : 'text-lg mb-3'}`}>
       <span className="opacity-50">{index}.</span> {label} ({score ?? '—'}/100)
     </h4>
-    <ul className="space-y-3 text-muted-foreground font-sans">
+    <ul className={`text-muted-foreground font-sans ${compact ? 'space-y-1.5 text-xs' : 'space-y-3'}`}>
       {bullets.map((b, i) => (
-        <li key={i} className="flex gap-3">
+        <li key={i} className="flex gap-2">
           <span className="bg-primary mt-1.5 w-1.5 h-1.5 rounded-full shrink-0" />
           <span><strong className="text-foreground tracking-wide">{b.label}:</strong> {b.text}</span>
         </li>
