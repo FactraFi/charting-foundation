@@ -79,7 +79,7 @@ const TradingViewWidget = ({ symbol }: { symbol: string }) => {
 /* ── Helper functions ────────────────────────────────── */
 const getPillarLabel = (score: number | null, isRisk = false): string => {
   if (score === null) return 'Pending';
-  if (isRisk) return score <= 30 ? 'Low' : score <= 60 ? 'Moderate' : 'High';
+  if (isRisk) return score >= 70 ? 'Low' : score >= 40 ? 'Moderate' : 'High';
   if (score >= 90) return 'Excellent';
   if (score >= 75) return 'Strong';
   if (score >= 60) return 'Good';
