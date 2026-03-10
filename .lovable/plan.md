@@ -1,47 +1,27 @@
 
 
-## Fix 4 Issues: Unused Imports, Missing Trade Buttons, Order Side Badge
+## Stretch Left Panel Pillar Cards to Match Right Panel Height
 
-### Issue 1: Add Buy/Sell Buttons to StockDetailView
+### Problem
+The left panel (FactraFi Score + 4 pillar cards) is shorter than the right panel ("Why This Score?"). The pillar cards at the bottom need to stretch vertically so both panels have equal height.
 
-**Problem**: The `onTrade` prop is accepted but never destructured or used -- users cannot trade from the stock detail page.
+### Changes — `src/components/StockDetailView.tsx`
 
-**Fix in `src/components/StockDetailView.tsx`**:
-- Line 122: Destructure `onTrade` from props (currently only `stock` and `onBack` are destructured)
-- Add two trade buttons (Buy / Sell) next to the Watchlist and Refresh buttons in the MarkerSection area. Since MarkerSection doesn't accept an `onTrade` prop, the buttons will be added directly in StockDetailView, right below the MarkerSection component (line 145).
+**1. Make the left panel use `flex-1` on the pillar grid to fill remaining space**
+- The left panel container (line 152) already uses `flex flex-col`. Add `flex-1` to the pillar cards grid container (line 190) so it stretches to fill remaining vertical space.
+- Change the pillar cards from `grid` to `flex` or keep grid but add `flex-1` and make each card use `flex-1` to stretch vertically.
 
-The buttons will be styled consistently with the app's design system using the primary color for Buy and destructive for Sell.
+**2. Ensure both panels stretch equally**
+- Add `items-stretch` to the parent flex row (line 150) — this is the default for flex but being explicit ensures both children match height.
+- On the left panel div (line 152), ensure it has `flex-1` behavior within the row by keeping `lg:w-[42%]` but also ensuring it stretches to full height.
 
-### Issue 2: Remove Unused Imports in ModernNavbar
+**3. Pillar card stretching**
+- Change the pillar grid (line 190) to include `flex-1` so it grows to fill the remaining space in the left column.
+- Each pillar card (line 192) gets `flex flex-col justify-between` so content distributes evenly within the stretched card.
+- The grid itself needs `auto-rows-fr` or the cards need `h-full` to actually stretch within the grid.
 
-**Problem**: `Settings`, `User`, `CreditCard` are imported but never used.
-
-**Fix in `src/components/ModernNavbar.tsx`**:
-- Line 5: Remove `Settings`, `User`, `CreditCard` from the lucide-react import statement.
-
-### Issue 3: Remove Unused Import in ScreenerView
-
-**Problem**: `Star` is imported but never used.
-
-**Fix in `src/components/ScreenerView.tsx`**:
-- Line 2: Remove `Star` from the lucide-react import statement.
-
-### Issue 4: Fix Order Side Badge Case Mismatch in PortfolioView
-
-**Problem**: `order.side === "buy"` fails because the database stores sides as uppercase ("BUY"/"SELL").
-
-**Fix in `src/components/PortfolioView.tsx`**:
-- Line 406: Change `order.side === "buy"` to `order.side.toUpperCase() === "BUY"` so the badge correctly shows green for buy orders and red for sell orders.
-
----
-
-### Technical Summary
-
-| File | Line(s) | Change |
-|------|---------|--------|
-| `src/components/StockDetailView.tsx` | 122 | Destructure `onTrade` from props |
-| `src/components/StockDetailView.tsx` | ~145 | Add Buy/Sell buttons below MarkerSection |
-| `src/components/ModernNavbar.tsx` | 5 | Remove `Settings`, `User`, `CreditCard` imports |
-| `src/components/ScreenerView.tsx` | 2 | Remove `Star` import |
-| `src/components/PortfolioView.tsx` | 406 | Case-insensitive side comparison |
+### Summary of class changes
+- Line 150 (`flex flex-col lg:flex-row gap-5`): No change needed, `align-items: stretch` is default.
+- Line 190 (pillar grid): Add `flex-1` so it grows to fill leftover height in the flex column.
+- Line 192 (each pillar card): Add `flex flex-col justify-between h-full` to stretch content.
 
