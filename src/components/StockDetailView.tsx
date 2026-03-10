@@ -147,12 +147,14 @@ const StockDetailView = ({ stock, onBack, onTrade }: StockDetailViewProps) => {
       <MarkerSection stock={stock} onBack={onBack} onTrade={onTrade} />
 
       {/* ── Side-by-Side: Score + Why This Score ────── */}
-      <div className="flex flex-col lg:flex-row gap-5 w-full">
+      <div className="bg-background border border-border rounded-xl p-5 relative overflow-hidden group">
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
+        <div className="flex flex-col lg:flex-row gap-5 w-full relative z-10">
         {/* Left Panel: Scorecard Tree */}
         <div className="flex flex-col lg:w-[42%] shrink-0">
           {/* Top Node: FactraFi Score */}
           <div className="flex justify-center mb-0 relative z-20">
-            <div className="w-full bg-background border-2 border-border hover:border-primary p-4 rounded-xl space-y-2 relative overflow-hidden transition-all group shadow-[0_0_20px_hsl(var(--border)/0.2)] hover:shadow-[0_0_40px_hsl(var(--primary)/0.2)]">
+            <div className="w-full hover:border-primary p-4 rounded-xl border border-border space-y-2 relative overflow-hidden transition-all group shadow-[0_0_20px_hsl(var(--border)/0.2)] hover:shadow-[0_0_40px_hsl(var(--primary)/0.2)]">
               <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
               <div className="relative z-10 text-center">
                 <div className="text-[10px] uppercase text-primary font-bold tracking-wider mb-1">FactraFi Total Score</div>
@@ -208,8 +210,7 @@ const StockDetailView = ({ stock, onBack, onTrade }: StockDetailViewProps) => {
         </div>
 
         {/* Right Panel: Why This Score */}
-        <div className="lg:w-[58%] bg-background border border-border rounded-xl p-4 relative overflow-hidden group flex flex-col">
-          <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
+        <div className="lg:w-[58%] flex flex-col">
 
           <div className="flex justify-between items-center mb-3 relative z-10">
             <h3 className="text-lg font-bold text-foreground tracking-tight underline decoration-primary/30 underline-offset-4 font-sans">Why This Score?</h3>
@@ -272,6 +273,7 @@ const StockDetailView = ({ stock, onBack, onTrade }: StockDetailViewProps) => {
               </>
             )}
           </div>
+        </div>
         </div>
       </div>
 
