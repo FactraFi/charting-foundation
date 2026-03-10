@@ -11,6 +11,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useWhyScore } from "@/hooks/use-why-score";
 import type { WhyScoreData } from "@/hooks/use-why-score";
 import type { StockData } from "@/lib/api";
+import { useScoreHistory } from "@/hooks/use-score-history";
 
 interface StockDetailViewProps {
   stock: StockData;
@@ -124,13 +125,22 @@ const PillarCard = ({ index, label, score, bullets, compact }: {
 const StockDetailView = ({ stock, onBack, onTrade }: StockDetailViewProps) => {
   const { data: whyScore, isLoading: whyLoading } = useWhyScore(stock);
 
-  const vScoreHistory = Array.from({ length: 20 }).map((_, i) => ({
-    name: `Day ${i}`,
-    Fundamentals: (stock.fundamentals ?? 50) + Math.random() * 20 - 10,
-    Momentum: (stock.momentum ?? 50) + Math.random() * 20 - 10,
-    Risk: (stock.risk ?? 50) + Math.random() * 20 - 10,
-    Sentiment: (stock.sentiment ?? 50) + Math.random() * 20 - 10,
-  }));
+  const { data: scoreHistory, isLoading: historyLoading } = useScoreHistory(stock.ticker);
+
+  const vScoreHistory = scoreHistory && scoreHistory.length > 0
+    ? scoreHistory
+    : Array.from({ length: 20 }).map((_, i) => {
+        const d = new Date();
+        d.setDate(d.getDate() - (19 - i));
+        return {
+          name: d.toLocaleDateString("en-US", { month: "short", day: "numeric" }),
+          date: d.toISOString().split("T")[0],
+          Fundamentals: stock.fundamentals ?? 50,
+          Momentum: stock.momentum ?? 50,
+          Risk: stock.risk ?? 50,
+          Sentiment: stock.sentiment ?? 50,
+        };
+      });
 
   const pillars = [
     { key: "fundamentals", label: "Fundamentals", desc: "Earnings & financial health.", score: stock.fundamentals },
@@ -281,6 +291,9 @@ const StockDetailView = ({ stock, onBack, onTrade }: StockDetailViewProps) => {
       <div className="bg-background border border-border rounded-xl p-5 relative overflow-hidden group">
         <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
         <h3 className="text-lg font-bold text-foreground tracking-tight mb-4 relative z-10 font-sans">V-Score History</h3>
+        {historyLoading ? (
+          <Skeleton className="h-64 rounded-lg" />
+        ) : (
         <div className="h-64 relative z-10">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={vScoreHistory} barGap={2}>
@@ -298,6 +311,7 @@ const StockDetailView = ({ stock, onBack, onTrade }: StockDetailViewProps) => {
             </BarChart>
           </ResponsiveContainer>
         </div>
+        )}
       </div>
 
       {/* ── Price Chart (TradingView) ────────────────── */}

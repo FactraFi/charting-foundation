@@ -178,6 +178,42 @@ export type Database = {
         }
         Relationships: []
       }
+      score_history: {
+        Row: {
+          created_at: string
+          fundamentals: number | null
+          id: string
+          momentum: number | null
+          risk: number | null
+          sentiment: number | null
+          snapshot_date: string
+          ticker: string
+          v_score: number | null
+        }
+        Insert: {
+          created_at?: string
+          fundamentals?: number | null
+          id?: string
+          momentum?: number | null
+          risk?: number | null
+          sentiment?: number | null
+          snapshot_date?: string
+          ticker: string
+          v_score?: number | null
+        }
+        Update: {
+          created_at?: string
+          fundamentals?: number | null
+          id?: string
+          momentum?: number | null
+          risk?: number | null
+          sentiment?: number | null
+          snapshot_date?: string
+          ticker?: string
+          v_score?: number | null
+        }
+        Relationships: []
+      }
       spy_daily_cache: {
         Row: {
           close_price: number
