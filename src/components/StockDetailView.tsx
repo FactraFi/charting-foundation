@@ -346,7 +346,7 @@ const StockDetailView = ({ stock, onBack, onTrade }: StockDetailViewProps) => {
           <div className="flex flex-wrap gap-2 mt-3 relative z-10 justify-center">
             {([
               { key: "Total", color: "hsl(var(--muted-foreground))" },
-              { key: "Fundamentals", color: "hsl(142, 71%, 45%)" },
+              { key: "Fundamentals", color: "hsl(150, 80%, 55%)" },
               { key: "Momentum", color: "hsl(188, 85%, 50%)" },
               { key: "Risk", color: "hsl(38, 92%, 50%)" },
               { key: "Sentiment", color: "hsl(263, 70%, 58%)" },
