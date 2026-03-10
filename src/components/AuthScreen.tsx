@@ -54,7 +54,7 @@ const AuthScreen = () => {
 
   const toggleView = () => {
     setError('');
-    setResetSent(false);
+    setConfirmationSent(false);
     setAuthView(prev => prev === 'login' ? 'signup' : 'login');
   };
 
