@@ -142,23 +142,7 @@ const StockDetailView = ({ stock, onBack, onTrade }: StockDetailViewProps) => {
   return (
     <div className="animate-fade-in-up space-y-8 pb-12">
       {/* Header / Marker Section */}
-      <MarkerSection stock={stock} onBack={onBack} />
-      {onTrade && (
-        <div className="flex gap-3 mt-4">
-          <button
-            onClick={() => onTrade(stock, 'buy')}
-            className="px-6 py-2.5 rounded-lg bg-primary text-primary-foreground font-semibold text-sm hover:bg-primary/90 transition-colors"
-          >
-            Buy {stock.ticker}
-          </button>
-          <button
-            onClick={() => onTrade(stock, 'sell')}
-            className="px-6 py-2.5 rounded-lg bg-destructive text-destructive-foreground font-semibold text-sm hover:bg-destructive/90 transition-colors"
-          >
-            Sell {stock.ticker}
-          </button>
-        </div>
-      )}
+      <MarkerSection stock={stock} onBack={onBack} onTrade={onTrade} />
 
       {/* ── Scorecard Tree Layout ─────────────────────── */}
       <div className="flex flex-col w-full mb-8">

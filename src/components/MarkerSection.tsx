@@ -1,6 +1,6 @@
 import { useState } from "react";
 import {
-  ChevronLeft, ChevronDown, Plus, RefreshCcw,
+  ChevronLeft, ChevronDown,
   TrendingUp, MessageSquare, BarChart3
 } from "lucide-react";
 import type { StockData } from "@/lib/api";
@@ -10,6 +10,7 @@ import { useStockSummary } from "@/hooks/use-stock-summary";
 interface MarkerSectionProps {
   stock: StockData;
   onBack: () => void;
+  onTrade?: (stock: StockData, type: 'buy' | 'sell') => void;
 }
 
 const buildMarkerDetail = (stock: StockData) => ({
@@ -61,7 +62,7 @@ const getMarkerIcon = (type: string) => {
   }
 };
 
-const MarkerSection = ({ stock, onBack }: MarkerSectionProps) => {
+const MarkerSection = ({ stock, onBack, onTrade }: MarkerSectionProps) => {
   const [selectedMarker, setSelectedMarker] = useState('Technical');
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const { data: summary, isLoading: summaryLoading } = useStockSummary(stock);
@@ -85,12 +86,22 @@ const MarkerSection = ({ stock, onBack }: MarkerSectionProps) => {
           <div className="flex-1">
             <div className="flex items-center gap-3 mb-2">
               <div className="text-4xl font-bold text-foreground tracking-tight">{stock.ticker}</div>
-              <button className="flex items-center gap-2 px-3 py-1.5 rounded-full border border-border text-xs font-bold text-muted-foreground hover:bg-foreground/5 transition-colors">
-                <Plus size={12} /> Watchlist
-              </button>
-              <button className="text-muted-foreground hover:text-foreground transition-colors">
-                <RefreshCcw size={16} />
-              </button>
+              {onTrade && (
+                <>
+                  <button
+                    onClick={() => onTrade(stock, 'buy')}
+                    className="flex items-center gap-1.5 px-4 py-1.5 rounded-full border border-primary text-xs font-bold text-primary hover:bg-primary/10 transition-colors"
+                  >
+                    Buy {stock.ticker}
+                  </button>
+                  <button
+                    onClick={() => onTrade(stock, 'sell')}
+                    className="flex items-center gap-1.5 px-4 py-1.5 rounded-full border border-destructive text-xs font-bold text-destructive hover:bg-destructive/10 transition-colors"
+                  >
+                    Sell {stock.ticker}
+                  </button>
+                </>
+              )}
             </div>
 
             <div className="flex items-baseline gap-3 mb-4">
@@ -112,7 +123,7 @@ const MarkerSection = ({ stock, onBack }: MarkerSectionProps) => {
         </div>
 
         {/* Right Side: Markers */}
-        <div className="flex-1 border-l border-border pl-8">
+        <div className="max-w-[380px] w-full border-l border-border pl-8">
           <div className="relative mb-4">
             <button
               onClick={() => setIsDropdownOpen(!isDropdownOpen)}
