@@ -124,23 +124,21 @@ const PillarCard = ({ index, label, score, bullets, compact }: {
 /* ── Main Component ──────────────────────────────────── */
 const StockDetailView = ({ stock, onBack, onTrade }: StockDetailViewProps) => {
   const { data: whyScore, isLoading: whyLoading } = useWhyScore(stock);
+  const [days, setDays] = useState(30);
+  const [visibleLines, setVisibleLines] = useState<Set<string>>(
+    () => new Set(["Total", "Fundamentals", "Momentum", "Risk", "Sentiment"])
+  );
 
-  const { data: scoreHistory, isLoading: historyLoading } = useScoreHistory(stock.ticker);
+  const { data: scoreHistory, isLoading: historyLoading } = useScoreHistory(stock.ticker, days);
 
-  const vScoreHistory = scoreHistory && scoreHistory.length > 0
-    ? scoreHistory
-    : Array.from({ length: 20 }).map((_, i) => {
-        const d = new Date();
-        d.setDate(d.getDate() - (19 - i));
-        return {
-          name: d.toLocaleDateString("en-US", { month: "short", day: "numeric" }),
-          date: d.toISOString().split("T")[0],
-          Fundamentals: stock.fundamentals ?? 50,
-          Momentum: stock.momentum ?? 50,
-          Risk: stock.risk ?? 50,
-          Sentiment: stock.sentiment ?? 50,
-        };
-      });
+  const toggleLine = (key: string) => {
+    setVisibleLines((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  };
 
   const pillars = [
     { key: "fundamentals", label: "Fundamentals", desc: "Earnings & financial health.", score: stock.fundamentals },
