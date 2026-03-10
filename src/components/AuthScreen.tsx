@@ -28,7 +28,7 @@ const AuthScreen = () => {
           redirectTo: `${window.location.origin}/reset-password`,
         });
         if (err) { setError(err.message); return; }
-        setResetSent(true);
+        setConfirmationSent(true);
         return;
       }
 
