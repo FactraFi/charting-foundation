@@ -89,12 +89,6 @@ const ScreenerCard = ({
           </span>
         </div>
         <div className="flex flex-col">
-          <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider mb-1">Signal</span>
-          <span className={`font-bold ${(stock.v_score ?? 0) >= 60 ? 'text-primary' : (stock.v_score ?? 0) >= 40 ? 'text-yellow-500' : 'text-destructive'}`}>
-            {stock.signal}
-          </span>
-        </div>
-        <div className="flex flex-col">
           <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider mb-1">V-Score</span>
           <span className="text-primary font-bold">{stock.v_score ?? '—'}</span>
         </div>
