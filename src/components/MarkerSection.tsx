@@ -10,6 +10,7 @@ import { useStockSummary } from "@/hooks/use-stock-summary";
 interface MarkerSectionProps {
   stock: StockData;
   onBack: () => void;
+  onTrade?: (stock: StockData, type: 'buy' | 'sell') => void;
 }
 
 const buildMarkerDetail = (stock: StockData) => ({
