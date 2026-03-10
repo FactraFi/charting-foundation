@@ -220,6 +220,20 @@ Deno.serve(async (req) => {
           { onConflict: "ticker" }
         );
 
+        // Also snapshot to score_history for today
+        await sb.from("score_history").upsert(
+          {
+            ticker,
+            snapshot_date: new Date().toISOString().split("T")[0],
+            v_score: scores.v_score,
+            fundamentals: scores.fundamentals,
+            momentum: scores.momentum,
+            risk: scores.risk,
+            sentiment: scores.sentiment,
+          },
+          { onConflict: "ticker,snapshot_date" }
+        );
+
         // Also upsert to stock_universe
         await sb.from("stock_universe").upsert(
           {

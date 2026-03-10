@@ -311,6 +311,7 @@ const StockDetailView = ({ stock, onBack, onTrade }: StockDetailViewProps) => {
             </BarChart>
           </ResponsiveContainer>
         </div>
+        )}
       </div>
 
       {/* ── Price Chart (TradingView) ────────────────── */}

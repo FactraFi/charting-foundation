@@ -32,3 +32,6 @@ verify_jwt = false
 
 [functions.spy-history]
 verify_jwt = false
+
+[functions.snapshot-scores]
+verify_jwt = false
