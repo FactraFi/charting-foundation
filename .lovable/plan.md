@@ -1,47 +1,43 @@
 
 
-## Fix 4 Issues: Unused Imports, Missing Trade Buttons, Order Side Badge
+## Verification Results — 12 Bug Fixes
 
-### Issue 1: Add Buy/Sell Buttons to StockDetailView
+### Confirmed Fixed (10 of 12)
 
-**Problem**: The `onTrade` prop is accepted but never destructured or used -- users cannot trade from the stock detail page.
+| Bug | Status | Notes |
+|-----|--------|-------|
+| Bug 1: PillarCard ref warning | **Fixed** | `React.forwardRef` applied in `StockDetailView.tsx:115` |
+| Bug 2: Risk label inversion | **Fixed** | `score >= 70 ? 'Low'` logic correct in both files |
+| Bug 3: ⌘K shortcut | **Fixed** | `useEffect` keydown listener present in `ModernNavbar.tsx:50-60` |
+| Bug 4: Hardcoded notifications | **Fixed** | Static array removed, shows empty state |
+| Bug 6: AI chat auth | **Fixed** | Uses `supabase.auth.getSession()` token |
+| Bug 7: Screener handleSelectStock | **Fixed** | Simplified navigation |
+| Bug 8: Screener P/E N/A | **Fixed** | Replaced with Signal based on v_score |
+| Bug 9: startOfDayLiquidity default | **Fixed** | Guards against null |
+| Bug 12: Auth state naming | **Fixed** | Renamed to `confirmationSent` |
+| Bug 15: SSE variable reassignment | **Fixed** | Uses separate `const line2` |
 
-**Fix in `src/components/StockDetailView.tsx`**:
-- Line 122: Destructure `onTrade` from props (currently only `stock` and `onBack` are destructured)
-- Add two trade buttons (Buy / Sell) next to the Watchlist and Refresh buttons in the MarkerSection area. Since MarkerSection doesn't accept an `onTrade` prop, the buttons will be added directly in StockDetailView, right below the MarkerSection component (line 145).
+### Still Broken (2 remaining issues found in console)
 
-The buttons will be styled consistently with the app's design system using the primary color for Buy and destructive for Sell.
+**Issue A: `FactraScoreGauge` ref warning**
+Console shows: `Function components cannot be given refs — Check the render method of DashboardView` pointing to `FactraScoreGauge`. The component at `FactraScoreGauge.tsx:10` is a plain function component, not wrapped in `forwardRef`. This was not in the original bug list but is the same class of issue as Bug 1.
 
-### Issue 2: Remove Unused Imports in ModernNavbar
+**Fix**: Wrap `FactraScoreGauge` in `React.forwardRef`, forwarding the ref to the outer container div.
 
-**Problem**: `Settings`, `User`, `CreditCard` are imported but never used.
+**Issue B: `TradingViewChart` ref warning in `DashboardView.tsx`**
+Console shows the same warning for the `TradingViewChart` component defined at `DashboardView.tsx:25`. It's also a plain function component.
 
-**Fix in `src/components/ModernNavbar.tsx`**:
-- Line 5: Remove `Settings`, `User`, `CreditCard` from the lucide-react import statement.
+**Fix**: Wrap `TradingViewChart` in `React.forwardRef`, forwarding the ref to the container div.
 
-### Issue 3: Remove Unused Import in ScreenerView
+### Bug 13 & 14 — Verified by code inspection
 
-**Problem**: `Star` is imported but never used.
+- **Bug 13** (TradingView cleanup): `widgetRef` + `widget.remove()` cleanup is present in `DashboardView.tsx:29-71` ✓
+- **Bug 14** (XIRR placeholder): Need to confirm this was changed — will be verified during implementation
 
-**Fix in `src/components/ScreenerView.tsx`**:
-- Line 2: Remove `Star` from the lucide-react import statement.
+### Plan
 
-### Issue 4: Fix Order Side Badge Case Mismatch in PortfolioView
+1. Wrap `FactraScoreGauge` in `React.forwardRef` in `src/components/FactraScoreGauge.tsx`
+2. Wrap `TradingViewChart` in `React.forwardRef` in `src/components/DashboardView.tsx:25-77`
 
-**Problem**: `order.side === "buy"` fails because the database stores sides as uppercase ("BUY"/"SELL").
-
-**Fix in `src/components/PortfolioView.tsx`**:
-- Line 406: Change `order.side === "buy"` to `order.side.toUpperCase() === "BUY"` so the badge correctly shows green for buy orders and red for sell orders.
-
----
-
-### Technical Summary
-
-| File | Line(s) | Change |
-|------|---------|--------|
-| `src/components/StockDetailView.tsx` | 122 | Destructure `onTrade` from props |
-| `src/components/StockDetailView.tsx` | ~145 | Add Buy/Sell buttons below MarkerSection |
-| `src/components/ModernNavbar.tsx` | 5 | Remove `Settings`, `User`, `CreditCard` imports |
-| `src/components/ScreenerView.tsx` | 2 | Remove `Star` import |
-| `src/components/PortfolioView.tsx` | 406 | Case-insensitive side comparison |
+Both are small, isolated changes — just adding `React.forwardRef` wrappers and forwarding the ref to the root div.
 
