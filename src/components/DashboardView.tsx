@@ -13,7 +13,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePortfolio } from "@/hooks/use-portfolio";
 import { useHoldingsWithPrices } from "@/hooks/use-holdings-prices";
-import { useStartOfDayLiquidity } from "@/hooks/use-start-of-day-liquidity";
+import { usePortfolioXirr } from "@/hooks/use-portfolio-xirr";
+import { computePortfolioPnl } from "@/lib/xirr";
 
 interface DashboardViewProps {
   setActiveTab: (tab: string) => void;
