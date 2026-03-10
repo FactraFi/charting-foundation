@@ -162,13 +162,13 @@ const PortfolioView = ({ onSelectStock, onTrade }: PortfolioViewProps) => {
 
         <Card className="border-border hover-glow">
           <CardContent className="p-4 flex items-center gap-3">
-            <div className={`p-2 rounded-lg bg-secondary ${daysPnl >= 0 ? "text-primary" : "text-destructive"}`}>
-              {daysPnl >= 0 ? <ArrowUpRight size={18} /> : <ArrowDownRight size={18} />}
+            <div className={`p-2 rounded-lg bg-secondary ${portfolioPnl >= 0 ? "text-primary" : "text-destructive"}`}>
+              {portfolioPnl >= 0 ? <ArrowUpRight size={18} /> : <ArrowDownRight size={18} />}
             </div>
             <div>
-              <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">Day's P&L</p>
-              <p className={`text-lg font-bold font-sans tabular-nums ${daysPnl >= 0 ? "text-primary" : "text-destructive"}`}>
-                {sodLiq != null ? `${daysPnl >= 0 ? "+" : ""}$${daysPnl.toFixed(2)}` : "--"} {sodLiq != null && <span className="text-xs">({daysPnlPct >= 0 ? "+" : ""}{daysPnlPct.toFixed(2)}%)</span>}
+              <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">Portfolio P&L</p>
+              <p className={`text-lg font-bold font-sans tabular-nums ${portfolioPnl >= 0 ? "text-primary" : "text-destructive"}`}>
+                {portfolioPnl >= 0 ? "+" : ""}${Math.abs(portfolioPnl).toFixed(2)} <span className="text-xs">({portfolioPnlPct >= 0 ? "+" : ""}{portfolioPnlPct.toFixed(2)}%)</span>
               </p>
             </div>
           </CardContent>
@@ -176,13 +176,13 @@ const PortfolioView = ({ onSelectStock, onTrade }: PortfolioViewProps) => {
 
         <Card className="border-border hover-glow">
           <CardContent className="p-4 flex items-center gap-3">
-            <div className={`p-2 rounded-lg bg-secondary ${totalReturn >= 0 ? "text-primary" : "text-destructive"}`}>
+            <div className={`p-2 rounded-lg bg-secondary ${xirr != null && xirr >= 0 ? "text-primary" : xirr != null ? "text-destructive" : "text-muted-foreground"}`}>
               <TrendingUp size={18} />
             </div>
             <div>
-              <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">Total Return</p>
-              <p className={`text-lg font-bold font-sans tabular-nums ${totalReturn >= 0 ? "text-primary" : "text-destructive"}`}>
-                {totalReturn >= 0 ? "+" : ""}${totalReturn.toFixed(2)} <span className="text-xs">({totalReturnPct >= 0 ? "+" : ""}{totalReturnPct.toFixed(1)}%)</span>
+              <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">Portfolio XIRR</p>
+              <p className={`text-lg font-bold font-sans tabular-nums ${xirr != null && xirr >= 0 ? "text-primary" : xirr != null ? "text-destructive" : "text-muted-foreground"}`}>
+                {xirr != null ? `${xirr >= 0 ? "+" : ""}${(xirr * 100).toFixed(1)}%` : "--"} <span className="text-xs">Annualized</span>
               </p>
             </div>
           </CardContent>
