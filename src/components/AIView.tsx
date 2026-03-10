@@ -67,9 +67,9 @@ async function streamChat({
   }
 
   if (buffer.trim()) {
-    for (let raw of buffer.split("\n")) {
+    for (const raw of buffer.split("\n")) {
       if (!raw) continue;
-      if (raw.endsWith("\r")) raw = raw.slice(0, -1);
+      const line2 = raw.endsWith("\r") ? raw.slice(0, -1) : raw;
       if (!raw.startsWith("data: ")) continue;
       const jsonStr = raw.slice(6).trim();
       if (jsonStr === "[DONE]") continue;
