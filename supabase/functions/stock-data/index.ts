@@ -323,6 +323,7 @@ Deno.serve(async (req) => {
       beta: alpha?.beta || null,
       analyst_target: alpha?.analyst_target || null,
       analyst_rating: alpha?.analyst_rating || null,
+      description: alpha?.description || null,
       year_change: null,
       v_score: finalScores?.v_score ?? null,
       fundamentals: finalScores?.fundamentals ?? null,
