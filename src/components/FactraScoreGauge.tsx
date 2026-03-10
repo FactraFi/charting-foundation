@@ -85,7 +85,7 @@ const FactraScoreGauge = React.forwardRef<HTMLDivElement, FactraScoreGaugeProps>
   const baseTickLength = isLarge ? 5 : isMedium ? 4 : 5;
 
   return (
-    <div className={`relative ${containerSize} flex items-center justify-center`}>
+    <div ref={ref} className={`relative ${containerSize} flex items-center justify-center`}>
       <div
         className="absolute inset-0 rounded-full blur-[60px] transition-all duration-300 opacity-20"
         style={{
