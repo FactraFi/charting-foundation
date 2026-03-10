@@ -18,7 +18,8 @@ export const useScoreHistory = (ticker: string | undefined, days = 20) =>
       if (!ticker) return [];
       const cutoff = subDays(new Date(), days).toISOString().split("T")[0];
 
-      const { data, error } = await supabase
+      // Use .from() with type assertion since score_history may not be in generated types yet
+      const { data, error } = await (supabase as any)
         .from("score_history")
         .select("snapshot_date, fundamentals, momentum, risk, sentiment")
         .eq("ticker", ticker)
@@ -29,7 +30,7 @@ export const useScoreHistory = (ticker: string | undefined, days = 20) =>
       if (error) throw error;
       if (!data || data.length === 0) return [];
 
-      return data.map((row: any) => ({
+      return (data as any[]).map((row) => ({
         name: format(new Date(row.snapshot_date + "T00:00:00"), "MMM d"),
         date: row.snapshot_date,
         Fundamentals: row.fundamentals ?? 0,
