@@ -1,33 +1,47 @@
 
 
-## Layout Redesign: 3-Column MarkerSection with About & Summary
+## Fix 4 Issues: Unused Imports, Missing Trade Buttons, Order Side Badge
 
-### Target Layout
+### Issue 1: Add Buy/Sell Buttons to StockDetailView
 
-```text
-┌──────────────────────────────────────────────────────────────────────────┐
-│ < [Logo] NVDA  Buy NVDA  Sell NVDA  │  Summary: ...        │  Markers  │
-│         $182.65  +2.68%             │                      │  Signal.. │
-│         About: NVIDIA designs GPUs  │                      │  Volume.. │
-│         used in gaming, AI...       │                      │  Beta..   │
-└──────────────────────────────────────────────────────────────────────────┘
-```
+**Problem**: The `onTrade` prop is accepted but never destructured or used -- users cannot trade from the stock detail page.
 
-Three columns: Left (ticker/price/about) | Middle (AI summary) | Right (markers, pushed to far right).
+**Fix in `src/components/StockDetailView.tsx`**:
+- Line 122: Destructure `onTrade` from props (currently only `stock` and `onBack` are destructured)
+- Add two trade buttons (Buy / Sell) next to the Watchlist and Refresh buttons in the MarkerSection area. Since MarkerSection doesn't accept an `onTrade` prop, the buttons will be added directly in StockDetailView, right below the MarkerSection component (line 145).
 
-### Changes
+The buttons will be styled consistently with the app's design system using the primary color for Buy and destructive for Sell.
 
-**1. `supabase/functions/stock-data/index.ts`** — Add `description` field
-- In `fetchAlphaOverview`, capture `d.Description` from the Alpha Vantage OVERVIEW response (this field already exists in the API, just not being returned).
-- Add `description: d.Description || null` to the return object.
-- Include `description: alpha?.description || null` in the final response payload.
+### Issue 2: Remove Unused Imports in ModernNavbar
 
-**2. `src/lib/api.ts`** — Add `description` to `StockData` type
-- Add `description: string | null` to the `StockData` interface.
+**Problem**: `Settings`, `User`, `CreditCard` are imported but never used.
 
-**3. `src/components/MarkerSection.tsx`** — Restructure to 3-column layout
-- **Left column** (~40%): Back button, logo, ticker + Buy/Sell buttons, price + change badge, and new "About" section showing `stock.description` (company overview from Alpha Vantage). Falls back to `stock.name — sector / industry` if no description.
-- **Middle column** (~30%): The AI-generated Summary (moved from left side). Shows the `useStockSummary` content with the "Summary:" label.
-- **Right column** (fixed width, pushed right with `ml-auto`): Markers dropdown + metrics grid. Remove `max-w-[380px]`, use a slightly wider fixed width and `ml-auto` to push it to the far right edge of the container.
-- Truncate the "About" text to ~3 lines with line-clamp to keep the section compact.
+**Fix in `src/components/ModernNavbar.tsx`**:
+- Line 5: Remove `Settings`, `User`, `CreditCard` from the lucide-react import statement.
+
+### Issue 3: Remove Unused Import in ScreenerView
+
+**Problem**: `Star` is imported but never used.
+
+**Fix in `src/components/ScreenerView.tsx`**:
+- Line 2: Remove `Star` from the lucide-react import statement.
+
+### Issue 4: Fix Order Side Badge Case Mismatch in PortfolioView
+
+**Problem**: `order.side === "buy"` fails because the database stores sides as uppercase ("BUY"/"SELL").
+
+**Fix in `src/components/PortfolioView.tsx`**:
+- Line 406: Change `order.side === "buy"` to `order.side.toUpperCase() === "BUY"` so the badge correctly shows green for buy orders and red for sell orders.
+
+---
+
+### Technical Summary
+
+| File | Line(s) | Change |
+|------|---------|--------|
+| `src/components/StockDetailView.tsx` | 122 | Destructure `onTrade` from props |
+| `src/components/StockDetailView.tsx` | ~145 | Add Buy/Sell buttons below MarkerSection |
+| `src/components/ModernNavbar.tsx` | 5 | Remove `Settings`, `User`, `CreditCard` imports |
+| `src/components/ScreenerView.tsx` | 2 | Remove `Star` import |
+| `src/components/PortfolioView.tsx` | 406 | Case-insensitive side comparison |
 

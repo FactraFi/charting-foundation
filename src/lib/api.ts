@@ -39,6 +39,7 @@ export interface StockData {
   momentum: number | null;
   risk: number | null;
   sentiment: number | null;
+  description: string | null;
   signal: string;
   has_scores: boolean;
   why_explanation: string | null;

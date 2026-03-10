@@ -210,12 +210,12 @@ const ScreenerView = ({ onSelectStock, onTrade }: ScreenerViewProps) => {
 
   const handleSelectStock = (ticker: string) => {
     const price = batchPrices?.[ticker];
-    onSelectStock({ ticker, name: ticker, sector: '', industry: '', current_price: price?.current_price ?? 0, day_change_pct: price?.day_change_pct ?? 0, volume: price?.volume ?? 0, previous_close: price?.previous_close ?? 0, market_cap: '', pe_ratio: null, forward_pe: null, debt_to_equity: null, roe: null, roce: null, dividend_yield: null, profit_margin: null, operating_margin: null, revenue_growth: null, eps_growth: null, beta: null, analyst_target: null, analyst_rating: null, year_change: null, v_score: null, fundamentals: null, momentum: null, risk: null, sentiment: null, signal: '', has_scores: false, why_explanation: null });
+    onSelectStock({ ticker, name: ticker, sector: '', industry: '', current_price: price?.current_price ?? 0, day_change_pct: price?.day_change_pct ?? 0, volume: price?.volume ?? 0, previous_close: price?.previous_close ?? 0, market_cap: '', pe_ratio: null, forward_pe: null, debt_to_equity: null, roe: null, roce: null, dividend_yield: null, profit_margin: null, operating_margin: null, revenue_growth: null, eps_growth: null, beta: null, analyst_target: null, analyst_rating: null, year_change: null, v_score: null, fundamentals: null, momentum: null, risk: null, sentiment: null, signal: '', has_scores: false, why_explanation: null, description: null });
   };
 
   const handlePlaceOrder = (ticker: string) => {
     const price = batchPrices?.[ticker];
-    onTrade({ ticker, name: ticker, sector: '', industry: '', current_price: price?.current_price ?? 0, day_change_pct: price?.day_change_pct ?? 0, volume: price?.volume ?? 0, previous_close: price?.previous_close ?? 0, market_cap: '', pe_ratio: null, forward_pe: null, debt_to_equity: null, roe: null, roce: null, dividend_yield: null, profit_margin: null, operating_margin: null, revenue_growth: null, eps_growth: null, beta: null, analyst_target: null, analyst_rating: null, year_change: null, v_score: null, fundamentals: null, momentum: null, risk: null, sentiment: null, signal: '', has_scores: false, why_explanation: null }, 'buy');
+    onTrade({ ticker, name: ticker, sector: '', industry: '', current_price: price?.current_price ?? 0, day_change_pct: price?.day_change_pct ?? 0, volume: price?.volume ?? 0, previous_close: price?.previous_close ?? 0, market_cap: '', pe_ratio: null, forward_pe: null, debt_to_equity: null, roe: null, roce: null, dividend_yield: null, profit_margin: null, operating_margin: null, revenue_growth: null, eps_growth: null, beta: null, analyst_target: null, analyst_rating: null, year_change: null, v_score: null, fundamentals: null, momentum: null, risk: null, sentiment: null, signal: '', has_scores: false, why_explanation: null, description: null }, 'buy');
   };
 
   const renderContent = () => {
