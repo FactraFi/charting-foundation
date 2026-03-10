@@ -96,7 +96,7 @@ const AuthScreen = () => {
           </div>
 
           {/* Form */}
-          {!resetSent ? (
+          {!confirmationSent ? (
             <form className="space-y-6" onSubmit={handleSubmit}>
               {authView === 'signup' && (
                 <div className="space-y-2">
