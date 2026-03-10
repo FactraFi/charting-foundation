@@ -1,47 +1,22 @@
 
 
-## Fix 4 Issues: Unused Imports, Missing Trade Buttons, Order Side Badge
+## Visual Enhancements: Move Trade Buttons Into Header & Resize Markers
 
-### Issue 1: Add Buy/Sell Buttons to StockDetailView
+### Changes
 
-**Problem**: The `onTrade` prop is accepted but never destructured or used -- users cannot trade from the stock detail page.
+**1. `src/components/MarkerSection.tsx`**
+- **Remove** the Watchlist button (lines 88-90) and the Refresh button (lines 91-93).
+- **Accept new props**: `onTrade` callback and `stock` data (already has stock).
+- **Add Buy/Sell buttons** in place of the removed Watchlist/Refresh buttons, inline with the ticker name. Style: green outlined "Buy TICKER" and red outlined "Sell TICKER" buttons, matching the screenshot reference.
+- **Reduce right-side markers width**: Change the right panel from `flex-1` (line 115) to a fixed/max-width (e.g., `max-w-[380px] w-full`) so the left side gets more space.
+- Update the `MarkerSectionProps` interface to include optional `onTrade`.
 
-**Fix in `src/components/StockDetailView.tsx`**:
-- Line 122: Destructure `onTrade` from props (currently only `stock` and `onBack` are destructured)
-- Add two trade buttons (Buy / Sell) next to the Watchlist and Refresh buttons in the MarkerSection area. Since MarkerSection doesn't accept an `onTrade` prop, the buttons will be added directly in StockDetailView, right below the MarkerSection component (line 145).
+**2. `src/components/StockDetailView.tsx`**
+- **Remove** the standalone Buy/Sell button block (lines 146-160) since buttons will now live inside MarkerSection.
+- **Pass `onTrade`** prop down to `<MarkerSection>`.
 
-The buttons will be styled consistently with the app's design system using the primary color for Buy and destructive for Sell.
-
-### Issue 2: Remove Unused Imports in ModernNavbar
-
-**Problem**: `Settings`, `User`, `CreditCard` are imported but never used.
-
-**Fix in `src/components/ModernNavbar.tsx`**:
-- Line 5: Remove `Settings`, `User`, `CreditCard` from the lucide-react import statement.
-
-### Issue 3: Remove Unused Import in ScreenerView
-
-**Problem**: `Star` is imported but never used.
-
-**Fix in `src/components/ScreenerView.tsx`**:
-- Line 2: Remove `Star` from the lucide-react import statement.
-
-### Issue 4: Fix Order Side Badge Case Mismatch in PortfolioView
-
-**Problem**: `order.side === "buy"` fails because the database stores sides as uppercase ("BUY"/"SELL").
-
-**Fix in `src/components/PortfolioView.tsx`**:
-- Line 406: Change `order.side === "buy"` to `order.side.toUpperCase() === "BUY"` so the badge correctly shows green for buy orders and red for sell orders.
-
----
-
-### Technical Summary
-
-| File | Line(s) | Change |
-|------|---------|--------|
-| `src/components/StockDetailView.tsx` | 122 | Destructure `onTrade` from props |
-| `src/components/StockDetailView.tsx` | ~145 | Add Buy/Sell buttons below MarkerSection |
-| `src/components/ModernNavbar.tsx` | 5 | Remove `Settings`, `User`, `CreditCard` imports |
-| `src/components/ScreenerView.tsx` | 2 | Remove `Star` import |
-| `src/components/PortfolioView.tsx` | 406 | Case-insensitive side comparison |
+### Layout Result
+- Left side (ticker, price, summary, trade buttons) expands to take more horizontal space.
+- Right side (markers grid) becomes narrower/fixed-width.
+- Buy/Sell buttons sit next to the ticker symbol where Watchlist used to be.
 
