@@ -1,47 +1,24 @@
 
 
-## Fix 4 Issues: Unused Imports, Missing Trade Buttons, Order Side Badge
+## Side-by-Side V-Score + Price Chart & Fix Time Range Buttons
 
-### Issue 1: Add Buy/Sell Buttons to StockDetailView
+### Bug: 30D/60D/90D Buttons
 
-**Problem**: The `onTrade` prop is accepted but never destructured or used -- users cannot trade from the stock detail page.
+The buttons correctly update state and the hook accepts the `days` param. However, the `snapshot-scores` function was only called with `backfill_days=19`, so the database only has ~20 days of history. Selecting 60D or 90D returns the same 20 rows. **Fix**: Re-run `snapshot-scores` with `backfill_days: 89` to populate 90 days of data.
 
-**Fix in `src/components/StockDetailView.tsx`**:
-- Line 122: Destructure `onTrade` from props (currently only `stock` and `onBack` are destructured)
-- Add two trade buttons (Buy / Sell) next to the Watchlist and Refresh buttons in the MarkerSection area. Since MarkerSection doesn't accept an `onTrade` prop, the buttons will be added directly in StockDetailView, right below the MarkerSection component (line 145).
+### Layout Change
 
-The buttons will be styled consistently with the app's design system using the primary color for Buy and destructive for Sell.
+Currently V-Score History and Price Chart are stacked vertically. Move them side-by-side in a `grid grid-cols-1 lg:grid-cols-2` container:
+- **Left**: V-Score History (keep all existing content — header, time range buttons, line chart, toggle legend)
+- **Right**: Price Chart (TradingView widget)
 
-### Issue 2: Remove Unused Imports in ModernNavbar
+Both panels share the same height. Reduce the TradingView chart height from `480px` to match the V-Score panel height (~400px total including header/legend).
 
-**Problem**: `Settings`, `User`, `CreditCard` are imported but never used.
+### File Changes
 
-**Fix in `src/components/ModernNavbar.tsx`**:
-- Line 5: Remove `Settings`, `User`, `CreditCard` from the lucide-react import statement.
-
-### Issue 3: Remove Unused Import in ScreenerView
-
-**Problem**: `Star` is imported but never used.
-
-**Fix in `src/components/ScreenerView.tsx`**:
-- Line 2: Remove `Star` from the lucide-react import statement.
-
-### Issue 4: Fix Order Side Badge Case Mismatch in PortfolioView
-
-**Problem**: `order.side === "buy"` fails because the database stores sides as uppercase ("BUY"/"SELL").
-
-**Fix in `src/components/PortfolioView.tsx`**:
-- Line 406: Change `order.side === "buy"` to `order.side.toUpperCase() === "BUY"` so the badge correctly shows green for buy orders and red for sell orders.
-
----
-
-### Technical Summary
-
-| File | Line(s) | Change |
-|------|---------|--------|
-| `src/components/StockDetailView.tsx` | 122 | Destructure `onTrade` from props |
-| `src/components/StockDetailView.tsx` | ~145 | Add Buy/Sell buttons below MarkerSection |
-| `src/components/ModernNavbar.tsx` | 5 | Remove `Settings`, `User`, `CreditCard` imports |
-| `src/components/ScreenerView.tsx` | 2 | Remove `Star` import |
-| `src/components/PortfolioView.tsx` | 406 | Case-insensitive side comparison |
+| File | Change |
+|------|--------|
+| `src/components/StockDetailView.tsx` | Wrap V-Score History (lines 289-356) and Price Chart (lines 358-367) in a single `grid grid-cols-1 lg:grid-cols-2 gap-4` div. Adjust heights so both panels match. |
+| Edge function call | Invoke `snapshot-scores` with `{ backfill_days: 89 }` to seed 90 days of history |
+| `src/hooks/use-score-history.ts` | Increase `.limit(days)` to `.limit(days + 5)` as a safety buffer for date boundaries |
 
