@@ -143,6 +143,7 @@ const FactraScoreGauge = React.forwardRef<HTMLDivElement, FactraScoreGaugeProps>
       </div>
     </div>
   );
-};
+});
+FactraScoreGauge.displayName = "FactraScoreGauge";
 
 export default FactraScoreGauge;
